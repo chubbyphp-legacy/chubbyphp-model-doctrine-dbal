@@ -178,13 +178,20 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
             ['model' => get_class($model), 'id' => $model->getId()]
         );
 
-        if (null === $this->find($model->getId())) {
-            $this->connection->insert($this->getTable(), $model->toRow());
-        } else {
-            $this->connection->update($this->getTable(), $model->toRow(), ['id' => $model->getId()]);
+        $row = $model->toRow();
+        foreach ($row as $key => $value) {
+            if (!is_scalar($value) && !is_array($value)) {
+                unset($row[$key]);
+            }
         }
 
-        $this->cache->set($model->getId(), $model->toRow());
+        if (null === $this->find($model->getId())) {
+            $this->connection->insert($this->getTable(), $row);
+        } else {
+            $this->connection->update($this->getTable(), $row, ['id' => $model->getId()]);
+        }
+
+        $this->cache->set($model->getId(), $row);
     }
 
     /**
@@ -192,10 +199,6 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
      */
     public function remove(ModelInterface $model)
     {
-        if (null === $this->find($model->getId())) {
-            return;
-        }
-
         $this->logger->info(
             'model: remove model {model} with id {id}',
             ['model' => get_class($model), 'id' => $model->getId()]
