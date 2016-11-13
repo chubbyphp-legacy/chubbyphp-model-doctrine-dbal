@@ -192,6 +192,10 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
      */
     public function remove(ModelInterface $model)
     {
+        if (null === $this->find($model->getId())) {
+            return;
+        }
+
         $this->logger->info(
             'model: remove model {model} with id {id}',
             ['model' => get_class($model), 'id' => $model->getId()]
