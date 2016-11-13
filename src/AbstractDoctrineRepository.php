@@ -6,6 +6,7 @@ namespace Chubbyphp\Model\Doctrine\DBAL;
 
 use Chubbyphp\Model\Cache\ModelCache;
 use Chubbyphp\Model\Cache\ModelCacheInterface;
+use Chubbyphp\Model\Collection\ModelCollection;
 use Chubbyphp\Model\ModelInterface;
 use Chubbyphp\Model\RepositoryInterface;
 use Doctrine\DBAL\Connection;
@@ -180,7 +181,7 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
 
         $row = $model->toRow();
         foreach ($row as $key => $value) {
-            if (!is_scalar($value) && !is_array($value)) {
+            if ($value instanceof ModelCollection) {
                 unset($row[$key]);
             }
         }
