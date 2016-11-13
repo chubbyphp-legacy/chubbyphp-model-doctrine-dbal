@@ -197,7 +197,7 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
             ['model' => get_class($model), 'id' => $model->getId()]
         );
 
-        $this->connection->remove($this->getTable(), ['id' => $model->getId()]);
+        $this->connection->delete($this->getTable(), ['id' => $model->getId()]);
 
         $this->cache->remove($model->getId());
     }
