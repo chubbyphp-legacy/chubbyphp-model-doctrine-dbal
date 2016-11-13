@@ -190,14 +190,14 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
     /**
      * @param ModelInterface $model
      */
-    public function delete(ModelInterface $model)
+    public function remove(ModelInterface $model)
     {
         $this->logger->info(
-            'model: delete model {model} with id {id}',
+            'model: remove model {model} with id {id}',
             ['model' => get_class($model), 'id' => $model->getId()]
         );
 
-        $this->connection->delete($this->getTable(), ['id' => $model->getId()]);
+        $this->connection->remove($this->getTable(), ['id' => $model->getId()]);
 
         $this->cache->remove($model->getId());
     }

@@ -604,7 +604,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
         self::assertSame(['model' => User::class, 'id' => 'id1'], $logger->__logs[0]['context']);
     }
 
-    public function testDelete()
+    public function testRemove()
     {
         $cache = $this->getCache();
         $logger = $this->getLogger();
@@ -637,13 +637,13 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
         $user->setPassword('password');
         $user->setActive(true);
 
-        $repository->delete($user);
+        $repository->remove($user);
 
         self::assertCount(0, $cache->__cache);
 
         self::assertCount(1, $logger->__logs);
         self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
-        self::assertSame('model: delete model {model} with id {id}', $logger->__logs[0]['message']);
+        self::assertSame('model: remove model {model} with id {id}', $logger->__logs[0]['message']);
         self::assertSame(['model' => User::class, 'id' => 'id1'], $logger->__logs[0]['context']);
     }
 
