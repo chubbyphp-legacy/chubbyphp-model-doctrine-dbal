@@ -187,8 +187,12 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
             if ($value instanceof ModelCollectionInterface) {
                 $collections[] = $value;
                 unset($row[$key]);
+            } elseif ($value instanceof ModelInterface) {
+                unset($row[$key]);
             }
         }
+
+        $this->connection->beginTransaction();
 
         if (null === $this->find($model->getId())) {
             $this->connection->insert($this->getTable(), $row);
@@ -202,6 +206,8 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
             $collection->persist();
             $collection->remove();
         }
+
+        $this->connection->commit();
     }
 
     /**
@@ -216,6 +222,8 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
 
         $row = $model->toRow();
 
+        $this->connection->beginTransaction();
+
         foreach ($row as $key => $value) {
             if ($value instanceof ModelCollectionInterface) {
                 $value->remove();
@@ -223,6 +231,8 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
         }
 
         $this->connection->delete($this->getTable(), ['id' => $model->getId()]);
+
+        $this->connection->commit();
 
         $this->cache->remove($model->getId());
     }
