@@ -19,17 +19,17 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
     /**
      * @var Connection
      */
-    private $connection;
+    protected $connection;
 
     /**
      * @var ModelCacheInterface
      */
-    private $cache;
+    protected $cache;
 
     /**
      * @var LoggerInterface
      */
-    private $logger;
+    protected $logger;
 
     /**
      * @param Connection               $connection
