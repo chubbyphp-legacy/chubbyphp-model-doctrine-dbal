@@ -180,6 +180,11 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
         );
 
         $row = $model->toRow();
+        foreach ($row as $field => $value) {
+            if ($value instanceof ModelCollectionInterface || $value instanceof ModelInterface) {
+                unset($row[$field]);
+            }
+        }
 
         if (null === $this->find($model->getId())) {
             $this->connection->insert($this->getTable(), $row);
