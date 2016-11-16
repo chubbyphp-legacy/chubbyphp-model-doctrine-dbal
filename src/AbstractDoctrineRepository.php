@@ -9,6 +9,7 @@ use Chubbyphp\Model\Cache\ModelCacheInterface;
 use Chubbyphp\Model\Collection\ModelCollectionInterface;
 use Chubbyphp\Model\ModelInterface;
 use Chubbyphp\Model\RepositoryInterface;
+use Chubbyphp\Model\ResolverInterface;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Query\QueryBuilder;
 use Psr\Log\LoggerInterface;
@@ -22,9 +23,9 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
     protected $connection;
 
     /**
-     * @var RepositoryInterface[]
+     * @var ResolverInterface
      */
-    protected $relatedRepositories;
+    protected $resolver;
 
     /**
      * @var ModelCacheInterface
@@ -38,18 +39,18 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
 
     /**
      * @param Connection               $connection
-     * @param array                    $relatedRepositories
+     * @param ResolverInterface        $resolver
      * @param ModelCacheInterface|null $cache
      * @param LoggerInterface|null     $logger
      */
     public function __construct(
         Connection $connection,
-        array $relatedRepositories = [],
+        ResolverInterface $resolver,
         ModelCacheInterface $cache = null,
         LoggerInterface $logger = null
     ) {
         $this->connection = $connection;
-        $this->relatedRepositories = $relatedRepositories;
+        $this->resolver = $resolver;
         $this->cache = $cache ?? new ModelCache();
         $this->logger = $logger ?? new NullLogger();
     }
@@ -231,12 +232,7 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
      */
     private function persistRelatedModel(ModelInterface $model)
     {
-        $modelClass = get_class($model);
-        if (!isset($this->relatedRepositories[$modelClass])) {
-            throw MissingRelatedRepositoryException::create($modelClass);
-        }
-
-        $this->relatedRepositories[$modelClass]->persist($model);
+        $this->resolver->getRepositoryByClass(get_class($model))->persist($model);
     }
 
     /**
@@ -278,12 +274,7 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
      */
     private function removeRelatedModel(ModelInterface $model)
     {
-        $modelClass = get_class($model);
-        if (!isset($this->relatedRepositories[$modelClass])) {
-            throw MissingRelatedRepositoryException::create($modelClass);
-        }
-
-        $this->relatedRepositories[$modelClass]->remove($model);
+        $this->resolver->getRepositoryByClass(get_class($model))->remove($model);
     }
 
     /**
