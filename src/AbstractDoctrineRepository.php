@@ -22,6 +22,11 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
     protected $connection;
 
     /**
+     * @var RepositoryInterface[]
+     */
+    protected $relatedRepositories;
+
+    /**
      * @var ModelCacheInterface
      */
     protected $cache;
@@ -33,15 +38,18 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
 
     /**
      * @param Connection               $connection
+     * @param array                    $relatedRepositories
      * @param ModelCacheInterface|null $cache
      * @param LoggerInterface|null     $logger
      */
     public function __construct(
         Connection $connection,
+        array $relatedRepositories = [],
         ModelCacheInterface $cache = null,
         LoggerInterface $logger = null
     ) {
         $this->connection = $connection;
+        $this->relatedRepositories = $relatedRepositories;
         $this->cache = $cache ?? new ModelCache();
         $this->logger = $logger ?? new NullLogger();
     }
@@ -181,7 +189,11 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
 
         $row = $model->toPersistence();
         foreach ($row as $field => $value) {
-            if ($value instanceof ModelCollectionInterface || $value instanceof ModelInterface) {
+            if ($value instanceof ModelCollectionInterface) {
+                $this->persistRelatedModels($value);
+                unset($row[$field]);
+            } elseif ($value instanceof ModelInterface) {
+                $this->persistRelatedModel($value);
                 unset($row[$field]);
             }
         }
@@ -196,6 +208,38 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
     }
 
     /**
+     * @param ModelCollectionInterface $modelCollection
+     */
+    private function persistRelatedModels(ModelCollectionInterface $modelCollection)
+    {
+        $initialModels = $modelCollection->getInitialModels();
+        $models = $modelCollection->getModels();
+        foreach ($models as $model) {
+            $this->persistRelatedModel($model);
+            if (isset($initialModels[$model->getId()])) {
+                unset($initialModels[$model->getId()]);
+            }
+        }
+
+        foreach ($initialModels as $initialModel) {
+            $this->removeRelatedModel($initialModel);
+        }
+    }
+
+    /**
+     * @param ModelInterface $model
+     */
+    private function persistRelatedModel(ModelInterface $model)
+    {
+        $modelClass = get_class($model);
+        if (!isset($this->relatedRepositories[$modelClass])) {
+            throw MissingRelatedRepositoryException::create($modelClass);
+        }
+
+        $this->relatedRepositories[$modelClass]->persist($model);
+    }
+
+    /**
      * @param ModelInterface $model
      */
     public function remove(ModelInterface $model)
@@ -205,9 +249,41 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
             ['model' => get_class($model), 'id' => $model->getId()]
         );
 
+        $row = $model->toPersistence();
+        foreach ($row as $field => $value) {
+            if ($value instanceof ModelCollectionInterface) {
+                $this->removeRelatedModels($value);
+            } elseif ($value instanceof ModelInterface) {
+                $this->removeRelatedModel($value);
+            }
+        }
+
         $this->connection->delete($this->getTable(), ['id' => $model->getId()]);
 
         $this->cache->remove($model->getId());
+    }
+
+    /**
+     * @paramModelCollectionInterface $modelCollection
+     */
+    private function removeRelatedModels(ModelCollectionInterface $modelCollection)
+    {
+        foreach ($modelCollection->getInitialModels() as $initialModel) {
+            $this->removeRelatedModel($initialModel);
+        }
+    }
+
+    /**
+     * @param ModelInterface $model
+     */
+    private function removeRelatedModel(ModelInterface $model)
+    {
+        $modelClass = get_class($model);
+        if (!isset($this->relatedRepositories[$modelClass])) {
+            throw MissingRelatedRepositoryException::create($modelClass);
+        }
+
+        $this->relatedRepositories[$modelClass]->remove($model);
     }
 
     /**
