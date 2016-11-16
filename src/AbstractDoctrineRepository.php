@@ -213,8 +213,8 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
      */
     private function persistRelatedModels(ModelCollectionInterface $modelCollection)
     {
-        $initialModels = $modelCollection->getInitialModels();
-        $models = $modelCollection->getModels();
+        $initialModels = $modelCollection->getInitial();
+        $models = $modelCollection->get();
         foreach ($models as $model) {
             $this->persistRelatedModel($model);
             if (isset($initialModels[$model->getId()])) {
@@ -264,7 +264,7 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
      */
     private function removeRelatedModels(ModelCollectionInterface $modelCollection)
     {
-        foreach ($modelCollection->getInitialModels() as $initialModel) {
+        foreach ($modelCollection->getInitial() as $initialModel) {
             $this->removeRelatedModel($initialModel);
         }
     }
