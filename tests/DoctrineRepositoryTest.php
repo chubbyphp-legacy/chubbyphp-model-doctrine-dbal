@@ -170,7 +170,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
             $this->getStatement(\PDO::FETCH_ASSOC, $data),
         ]);
 
-        $cache = $this->getCache(['id1' => User::fromRow($data)]);
+        $cache = $this->getCache(['id1' => User::fromPersistence($data)]);
         $logger = $this->getLogger();
 
         $repository = $this->getDoctrineRepository(

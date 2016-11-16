@@ -58,7 +58,7 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
         $this->logger->info('model: find model {model} with id {id}', ['model' => $modelClass, 'id' => $id]);
 
         if ($this->cache->has($id)) {
-            return $this->fromRow($this->cache->get($id));
+            return $this->fromPersistence($this->cache->get($id));
         }
 
         $qb = $this->connection->createQueryBuilder();
@@ -76,7 +76,7 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
 
         $this->cache->set($row['id'], $row);
 
-        return $this->fromRow($row);
+        return $this->fromPersistence($row);
     }
 
     /**
@@ -107,7 +107,7 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
 
         $this->cache->set($row['id'], $row);
 
-        return $this->fromRow($row);
+        return $this->fromPersistence($row);
     }
 
     /**
@@ -145,7 +145,7 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
         $models = [];
         foreach ($rows as $row) {
             $this->cache->set($row['id'], $row);
-            $models[] = $this->fromRow($row);
+            $models[] = $this->fromPersistence($row);
         }
 
         return $models;
@@ -179,7 +179,7 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
             ['model' => get_class($model), 'id' => $model->getId()]
         );
 
-        $row = $model->toRow();
+        $row = $model->toPersistence();
         foreach ($row as $field => $value) {
             if ($value instanceof ModelCollectionInterface || $value instanceof ModelInterface) {
                 unset($row[$field]);
@@ -215,12 +215,12 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
      *
      * @return ModelInterface
      */
-    protected function fromRow(array $row): ModelInterface
+    protected function fromPersistence(array $row): ModelInterface
     {
         /** @var ModelInterface $modelClass */
         $modelClass = $this->getModelClass();
 
-        return $modelClass::fromRow($row);
+        return $modelClass::fromPersistence($row);
     }
 
     /**
