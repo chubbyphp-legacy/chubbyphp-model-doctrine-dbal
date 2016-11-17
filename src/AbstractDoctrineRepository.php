@@ -242,7 +242,7 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
      */
     private function persistRelatedModel(ModelInterface $model)
     {
-        $this->resolver->getRepositoryByClass(get_class($model))->persist($model);
+        $this->resolver->persist($model);
     }
 
     /**
@@ -284,7 +284,7 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
      */
     private function removeRelatedModel(ModelInterface $model)
     {
-        $this->resolver->getRepositoryByClass(get_class($model))->remove($model);
+        $this->resolver->remove($model);
     }
 
     /**
