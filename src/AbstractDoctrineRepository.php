@@ -190,13 +190,12 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
 
         $row = $model->toPersistence();
         $modelCollections = [];
-        $models = [];
         foreach ($row as $field => $value) {
             if ($value instanceof ModelCollectionInterface) {
                 $modelCollections[] = $value;
                 unset($row[$field]);
             } elseif ($value instanceof ModelInterface) {
-                $models[] = $value;
+                $this->persistRelatedModel($value);
                 unset($row[$field]);
             }
         }
@@ -209,10 +208,6 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
 
         foreach ($modelCollections as $modelCollection) {
             $this->persistRelatedModels($modelCollection);
-        }
-
-        foreach ($models as $model) {
-            $this->persistRelatedModel($model);
         }
 
         $this->cache->set($model->getId(), $row);
