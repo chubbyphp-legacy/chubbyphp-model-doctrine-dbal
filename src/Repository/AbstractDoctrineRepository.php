@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Chubbyphp\Model\Doctrine\DBAL;
+namespace Chubbyphp\Model\Doctrine\DBAL\Repository;
 
 use Chubbyphp\Model\Cache\ModelCache;
 use Chubbyphp\Model\Cache\ModelCacheInterface;
