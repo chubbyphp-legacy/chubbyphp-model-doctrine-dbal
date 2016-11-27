@@ -1,9 +1,9 @@
 <?php
 
-namespace Chubbyphp\Tests\Model;
+namespace Chubbyphp\Tests\Model\Doctrine\DBAL\Repository;
 
-use Chubbyphp\Model\AbstractDoctrineRepository;
 use Chubbyphp\Model\Cache\ModelCacheInterface;
+use Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository;
 use Chubbyphp\Model\ModelInterface;
 use Chubbyphp\Tests\Model\Resources\User;
 use Doctrine\DBAL\Connection;
@@ -13,6 +13,9 @@ use Doctrine\DBAL\Query\QueryBuilder;
 use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
 
+/**
+ * @covers Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository
+ */
 final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
 {
     public function testFindNotFound()
