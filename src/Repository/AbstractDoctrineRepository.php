@@ -287,13 +287,7 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
      *
      * @return ModelInterface
      */
-    protected function fromPersistence(array $row): ModelInterface
-    {
-        /** @var ModelInterface $modelClass */
-        $modelClass = $this->getModelClass();
-
-        return $modelClass::fromPersistence($row);
-    }
+    abstract protected function fromPersistence(array $row): ModelInterface;
 
     /**
      * @return string
