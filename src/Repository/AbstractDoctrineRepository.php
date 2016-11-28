@@ -62,9 +62,9 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
      */
     public function find(string $id)
     {
-        $modelClass = $this->getModelClass();
+        $table = $this->getTable();
 
-        $this->logger->info('model: find model {model} with id {id}', ['model' => $modelClass, 'id' => $id]);
+        $this->logger->info('model: find row within table {table} with id {id}', ['table' => $table, 'id' => $id]);
 
         if ($this->cache->has($id)) {
             return $this->fromPersistence($this->cache->get($id));
@@ -76,8 +76,8 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
         $row = $qb->execute()->fetch(\PDO::FETCH_ASSOC);
         if (false === $row) {
             $this->logger->warning(
-                'model: model {model} with id {id} not found',
-                ['model' => $modelClass, 'id' => $id]
+                'model: row within table {table} with id {id} not found',
+                ['table' => $table, 'id' => $id]
             );
 
             return null;
@@ -93,30 +93,20 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
      *
      * @return null|ModelInterface
      */
-    public function findOneBy(array $criteria)
+    public function findOneBy(array $criteria, array $orderBy = null)
     {
-        $modelClass = $this->getModelClass();
+        $models = $this->findBy($criteria, $orderBy, 1, 0);
 
-        $this->logger->info(
-            'model: find model {model} with criteria {criteria}',
-            ['model' => $modelClass, 'criteria' => $criteria]
-        );
-
-        $qb = $this->getFindByQueryBuilder($criteria)->setMaxResults(1);
-
-        $row = $qb->execute()->fetch(\PDO::FETCH_ASSOC);
-        if (false === $row) {
+        if ([] === $models) {
             $this->logger->warning(
-                'model: model {model} with criteria {criteria} not found',
-                ['model' => $modelClass, 'criteria' => $criteria]
+                'model: row within table {table} with criteria {criteria} not found',
+                ['table' => $table, 'criteria' => $criteria]
             );
 
             return null;
         }
 
-        $this->cache->set($row['id'], $row);
-
-        return $this->fromPersistence($row);
+        return reset($models);
     }
 
     /**
@@ -126,24 +116,22 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
      */
     public function findBy(array $criteria, array $orderBy = null, int $limit = null, int $offset = null): array
     {
-        $modelClass = $this->getModelClass();
+        $table = $this->getTable();
 
         $this->logger->info(
-            'model: find model {model} with criteria {criteria}',
-            ['model' => $modelClass, 'criteria' => $criteria]
+            'model: find rows within table {table} with criteria {criteria}',
+            ['table' => $table, 'criteria' => $criteria, 'orderBy' => $orderBy, 'limit' => $limit, 'offset' => $offset]
         );
 
-        $qb = $this
-            ->getFindByQueryBuilder($criteria)
+        $qb = $this->connection->createQueryBuilder()
+            ->select('*')
+            ->from($table)
             ->setFirstResult($offset)
             ->setMaxResults($limit)
         ;
 
-        if (null !== $orderBy) {
-            foreach ($orderBy as $field => $direction) {
-                $qb->addOrderBy($field, $direction);
-            }
-        }
+        $this->addCriteriaToQueryBuilder($qb, $criteria);
+        $this->addOrderByToQueryBuilder($qb, $criteria);
 
         $rows = $qb->execute()->fetchAll(\PDO::FETCH_ASSOC);
 
@@ -154,6 +142,7 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
         $models = [];
         foreach ($rows as $row) {
             $this->cache->set($row['id'], $row);
+
             $models[] = $this->fromPersistence($row);
         }
 
@@ -161,21 +150,30 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
     }
 
     /**
-     * @param array $criteria
-     *
-     * @return QueryBuilder
+     * @param QueryBuilder $qb
+     * @param array        $criteria
      */
-    private function getFindByQueryBuilder(array $criteria = []): QueryBuilder
+    protected function addCriteriaToQueryBuilder(QueryBuilder $qb, array $criteria)
     {
-        $qb = $this->connection->createQueryBuilder();
-        $qb->select('*')->from($this->getTable());
-
         foreach ($criteria as $field => $value) {
             $qb->andWhere($qb->expr()->eq($field, ':'.$field));
             $qb->setParameter($field, $value);
         }
+    }
 
-        return $qb;
+    /**
+     * @param QueryBuilder $qb
+     * @param array|null   $orderBy
+     */
+    protected function addOrderByToQueryBuilder(QueryBuilder $qb, array $orderBy = null)
+    {
+        if (null === $orderBy) {
+            return;
+        }
+
+        foreach ($orderBy as $field => $direction) {
+            $qb->addOrderBy($field, $direction);
+        }
     }
 
     /**
@@ -183,12 +181,9 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
      */
     public function persist(ModelInterface $model)
     {
-        $this->logger->info(
-            'model: persist model {model} with id {id}',
-            ['model' => get_class($model), 'id' => $model->getId()]
-        );
-
+        $id = $model->getId();
         $row = $model->toPersistence();
+
         $modelCollections = [];
         foreach ($row as $field => $value) {
             if ($value instanceof ModelCollectionInterface) {
@@ -200,17 +195,76 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
             }
         }
 
-        if (null === $this->find($model->getId())) {
-            $this->connection->insert($this->getTable(), $row);
+        if (null === $this->find($id)) {
+            $this->insert($id, $row);
         } else {
-            $this->connection->update($this->getTable(), $row, ['id' => $model->getId()]);
+            $this->update($id, $row);
         }
 
         foreach ($modelCollections as $modelCollection) {
             $this->persistRelatedModels($modelCollection);
         }
 
-        $this->cache->set($model->getId(), $row);
+        $this->cache->set($id, $row);
+    }
+
+    /**
+     * @param ModelInterface $model
+     */
+    public function remove(ModelInterface $model)
+    {
+        $table = $this->getTable();
+
+        $this->logger->info(
+            'model: remove row from table {table} with id {id}',
+            ['table' => $table, 'id' => $model->getId()]
+        );
+
+        $row = $model->toPersistence();
+
+        foreach ($row as $field => $value) {
+            if ($value instanceof ModelCollectionInterface) {
+                $this->removeRelatedModels($value);
+            } elseif ($value instanceof ModelInterface) {
+                $this->removeRelatedModel($value);
+            }
+        }
+
+        $this->connection->delete($table, ['id' => $model->getId()]);
+
+        $this->cache->remove($model->getId());
+    }
+
+    /**
+     * @param string $id
+     * @param array  $row
+     */
+    protected function insert(string $id, array $row)
+    {
+        $table = $this->getTable();
+
+        $this->logger->info(
+            'model: insert row into table {table} with id {id}',
+            ['table' => $table, 'id' => $id]
+        );
+
+        $this->connection->insert($table, $row);
+    }
+
+    /**
+     * @param string $id
+     * @param array  $row
+     */
+    protected function update(string $id, array $row)
+    {
+        $table = $this->getTable();
+
+        $this->logger->info(
+            'model: update row into table {table} with id {id}',
+            ['table' => $table, 'id' => $id]
+        );
+
+        $this->connection->update($table, $row, ['id' => $id]);
     }
 
     /**
@@ -220,6 +274,7 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
     {
         $initialModels = $modelCollection->getInitialModels();
         $models = $modelCollection->getModels();
+
         foreach ($models as $model) {
             $this->persistRelatedModel($model);
             if (isset($initialModels[$model->getId()])) {
@@ -241,31 +296,7 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
     }
 
     /**
-     * @param ModelInterface $model
-     */
-    public function remove(ModelInterface $model)
-    {
-        $this->logger->info(
-            'model: remove model {model} with id {id}',
-            ['model' => get_class($model), 'id' => $model->getId()]
-        );
-
-        $row = $model->toPersistence();
-        foreach ($row as $field => $value) {
-            if ($value instanceof ModelCollectionInterface) {
-                $this->removeRelatedModels($value);
-            } elseif ($value instanceof ModelInterface) {
-                $this->removeRelatedModel($value);
-            }
-        }
-
-        $this->connection->delete($this->getTable(), ['id' => $model->getId()]);
-
-        $this->cache->remove($model->getId());
-    }
-
-    /**
-     * @paramModelCollectionInterface $modelCollection
+     * @param ModelCollectionInterface $modelCollection
      */
     private function removeRelatedModels(ModelCollectionInterface $modelCollection)
     {
