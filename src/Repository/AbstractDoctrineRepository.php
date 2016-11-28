@@ -131,7 +131,7 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
         ;
 
         $this->addCriteriaToQueryBuilder($qb, $criteria);
-        $this->addOrderByToQueryBuilder($qb, $criteria);
+        $this->addOrderByToQueryBuilder($qb, $orderBy);
 
         $rows = $qb->execute()->fetchAll(\PDO::FETCH_ASSOC);
 
