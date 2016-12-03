@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Chubbyphp\Model\Doctrine\DBAL\Repository;
 
-use Chubbyphp\Model\Cache\ModelCache;
-use Chubbyphp\Model\Cache\ModelCacheInterface;
 use Chubbyphp\Model\Collection\ModelCollectionInterface;
 use Chubbyphp\Model\ModelInterface;
 use Chubbyphp\Model\RepositoryInterface;
 use Chubbyphp\Model\ResolverInterface;
+use Chubbyphp\Model\StorageCache\NullStorageCache;
+use Chubbyphp\Model\StorageCache\StorageCacheInterface;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Query\QueryBuilder;
 use Psr\Log\LoggerInterface;
@@ -28,9 +28,9 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
     protected $resolver;
 
     /**
-     * @var ModelCacheInterface
+     * @var StorageCacheInterface
      */
-    protected $cache;
+    protected $storageCache;
 
     /**
      * @var LoggerInterface
@@ -38,20 +38,20 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
     protected $logger;
 
     /**
-     * @param Connection               $connection
-     * @param ResolverInterface        $resolver
-     * @param ModelCacheInterface|null $cache
-     * @param LoggerInterface|null     $logger
+     * @param Connection           $connection
+     * @param ResolverInterface    $resolver
+     * @param StorageCacheInterface  $storageCache
+     * @param LoggerInterface|null $logger
      */
     public function __construct(
         Connection $connection,
         ResolverInterface $resolver,
-        ModelCacheInterface $cache = null,
+        StorageCacheInterface $storageCache,
         LoggerInterface $logger = null
     ) {
         $this->connection = $connection;
         $this->resolver = $resolver;
-        $this->cache = $cache ?? new ModelCache();
+        $this->storageCache = $storageCache ?? new NullStorageCache();
         $this->logger = $logger ?? new NullLogger();
     }
 
@@ -66,8 +66,8 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
 
         $this->logger->info('model: find row within table {table} with id {id}', ['table' => $table, 'id' => $id]);
 
-        if ($this->cache->has($id)) {
-            return $this->fromPersistence($this->cache->get($id));
+        if ($this->storageCache->has($id)) {
+            return $this->fromPersistence($this->storageCache->get($id));
         }
 
         $qb = $this->connection->createQueryBuilder();
@@ -83,7 +83,7 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
             return null;
         }
 
-        $this->cache->set($row['id'], $row);
+        $this->storageCache->set($row['id'], $row);
 
         return $this->fromPersistence($row);
     }
@@ -141,7 +141,7 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
 
         $models = [];
         foreach ($rows as $row) {
-            $this->cache->set($row['id'], $row);
+            $this->storageCache->set($row['id'], $row);
 
             $models[] = $this->fromPersistence($row);
         }
@@ -205,7 +205,7 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
             $this->persistRelatedModels($modelCollection);
         }
 
-        $this->cache->set($id, $row);
+        $this->storageCache->set($id, $row);
     }
 
     /**
@@ -232,7 +232,7 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
 
         $this->connection->delete($table, ['id' => $model->getId()]);
 
-        $this->cache->remove($model->getId());
+        $this->storageCache->remove($model->getId());
     }
 
     /**
