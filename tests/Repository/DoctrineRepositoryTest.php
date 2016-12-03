@@ -2,11 +2,10 @@
 
 namespace Chubbyphp\Tests\Model\Doctrine\DBAL\Repository;
 
+use Chubbyphp\Model\ModelInterface;
 use Chubbyphp\Model\StorageCache\StorageCacheInterface;
 use Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository;
-use Chubbyphp\Model\ModelInterface;
 use Chubbyphp\Model\ResolverInterface;
-use Chubbyphp\Tests\Model\Resources\User;
 use Doctrine\DBAL\Connection;
 use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
@@ -20,6 +19,132 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
     use GetLoggerTrait;
     use GetResolverTrait;
     use GetStorageCacheTrait;
+
+    public function testFindFromStorageCache()
+    {
+        $modelEntries = [
+            [
+                'id' => 'id1',
+                'name' => 'name3',
+                'category' => 'category1',
+            ],
+            [
+                'id' => 'id2',
+                'name' => 'name2',
+                'category' => 'category2',
+            ],
+            [
+                'id' => 'id3',
+                'name' => 'name1',
+                'category' => 'category1',
+            ],
+        ];
+
+        $queryBuilder = $this->getQueryBuilder();
+        $resolver = $this->getResolver();
+        $storageCache = $this->getStorageCache($modelEntries);
+        $logger = $this->getLogger();
+
+        $repository = $this->getDoctrineRepository(
+            $this->getConnection(['queryBuilder' => [$queryBuilder]]),
+            $resolver,
+            $storageCache,
+            $logger,
+            ModelInterface::class,
+            'models'
+        );
+
+        $model = $repository->find('id1');
+
+        self::assertInstanceOf(ModelInterface::class, $model);
+
+        self::assertSame('id1', $model->getId());
+        self::assertSame('name1', $model->getName());
+        self::assertSame('category1', $model->getCategory());
+
+        self::assertCount(1, $logger->__logs);
+        self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
+        self::assertSame('model: find row within table {table} with id {id}', $logger->__logs[0]['message']);
+        self::assertSame(['table' => 'models', 'id' => 'id1'], $logger->__logs[0]['context']);
+    }
+
+    public function testFindFound()
+    {
+        $entry = [
+            'id' => 'id1',
+            'modelname' => 'modelname',
+            'password' => 'password',
+            'active' => true,
+        ];
+
+        $queryBuilder = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, $entry)]);
+
+        $resolver = $this->getResolver();
+        $storageCache = $this->getStorageCache();
+        $logger = $this->getLogger();
+
+        $repository = $this->getDoctrineRepository(
+            $this->getConnection(['queryBuilder' => [$queryBuilder]]),
+            $resolver,
+            $storageCache,
+            $logger,
+            ModelInterface::class,
+            'models'
+        );
+
+        $model = $repository->find('id1');
+
+        self::assertInstanceOf(ModelInterface::class, $model);
+
+        self::assertSame('id1', $model->getId());
+        self::assertSame('modelname', $model->getUsername());
+        self::assertSame('password', $model->getPassword());
+        self::assertTrue($model->isActive());
+
+        self::assertEquals(
+            [
+                'select' => [
+                    [
+                        '*',
+                    ],
+                ],
+                'from' => [
+                    [
+                        'models',
+                        null,
+                    ],
+                ],
+                'where' => [
+                    [
+                        [
+                            'method' => 'eq',
+                            'arguments' => [
+                                'id',
+                                ':id',
+                            ],
+                        ],
+                    ],
+                ],
+                'setParameter' => [
+                    [
+                        'id',
+                        'id1',
+                        null,
+                    ],
+                ],
+            ],
+            $queryBuilder->__calls
+        );
+
+        self::assertCount(1, $storageCache->__data);
+        self::assertArrayHasKey('id1', $storageCache->__data);
+        self::assertSame($entry, $storageCache->__data['id1']);
+
+        self::assertCount(1, $logger->__logs);
+        self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
+        self::assertSame('model: find row within table {table} with id {id}', $logger->__logs[0]['message']);
+        self::assertSame(['table' => 'models', 'id' => 'id1'], $logger->__logs[0]['context']);
+    }
 
     public function testFindNotFound()
     {
@@ -36,8 +161,8 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
             $resolver,
             $storageCache,
             $logger,
-            User::class,
-            'users'
+            ModelInterface::class,
+            'models'
         );
 
         self::assertNull($repository->find('id1'));
@@ -51,7 +176,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
                 ],
                 'from' => [
                     [
-                        'users',
+                        'models',
                         null,
                     ],
                 ],
@@ -82,106 +207,27 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
         self::assertCount(2, $logger->__logs);
         self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
         self::assertSame('model: find row within table {table} with id {id}', $logger->__logs[0]['message']);
-        self::assertSame(['table' => 'users', 'id' => 'id1'], $logger->__logs[0]['context']);
+        self::assertSame(['table' => 'models', 'id' => 'id1'], $logger->__logs[0]['context']);
         self::assertSame(LogLevel::WARNING, $logger->__logs[1]['level']);
         self::assertSame('model: row within table {table} with id {id} not found', $logger->__logs[1]['message']);
-        self::assertSame(['table' => 'users', 'id' => 'id1'], $logger->__logs[1]['context']);
+        self::assertSame(['table' => 'models', 'id' => 'id1'], $logger->__logs[1]['context']);
     }
 
-    public function testFindFound()
+    public function testFindOneByFound()
     {
-        $queryBuilder = $this->getQueryBuilder([
-            $this->getStatement(\PDO::FETCH_ASSOC, [
-                'id' => 'id1',
-                'username' => 'username',
-                'password' => 'password',
-                'active' => true,
-            ]),
-        ]);
-
-        $resolver = $this->getResolver();
-        $storageCache = $this->getStorageCache();
-        $logger = $this->getLogger();
-
-        $repository = $this->getDoctrineRepository(
-            $this->getConnection(['queryBuilder' => [$queryBuilder]]),
-            $resolver,
-            $storageCache,
-            $logger,
-            User::class,
-            'users'
-        );
-
-        /** @var User $user */
-        $user = $repository->find('id1');
-
-        self::assertInstanceOf(User::class, $user);
-
-        self::assertSame('id1', $user->getId());
-        self::assertSame('username', $user->getUsername());
-        self::assertSame('password', $user->getPassword());
-        self::assertTrue($user->isActive());
-
-        self::assertEquals(
-            [
-                'select' => [
-                    [
-                        '*',
-                    ],
-                ],
-                'from' => [
-                    [
-                        'users',
-                        null,
-                    ],
-                ],
-                'where' => [
-                    [
-                        [
-                            'method' => 'eq',
-                            'arguments' => [
-                                'id',
-                                ':id',
-                            ],
-                        ],
-                    ],
-                ],
-                'setParameter' => [
-                    [
-                        'id',
-                        'id1',
-                        null,
-                    ],
-                ],
-            ],
-            $queryBuilder->__calls
-        );
-
-        self::assertCount(1, $storageCache->__data);
-        self::assertArrayHasKey('id1', $storageCache->__data);
-        self::assertInstanceOf(ModelInterface::class, $storageCache->__data['id1']);
-
-        self::assertCount(1, $logger->__logs);
-        self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
-        self::assertSame('model: find row within table {table} with id {id}', $logger->__logs[0]['message']);
-        self::assertSame(['table' => 'users', 'id' => 'id1'], $logger->__logs[0]['context']);
-    }
-
-    public function testFindFoundWithinStorageCache()
-    {
-        $data = [
+        $entry = [
             'id' => 'id1',
-            'username' => 'username',
+            'modelname' => 'model1',
             'password' => 'password',
             'active' => true,
         ];
 
         $queryBuilder = $this->getQueryBuilder([
-            $this->getStatement(\PDO::FETCH_ASSOC, $data),
+            $this->getStatement(\PDO::FETCH_ASSOC, [$entry]),
         ]);
 
         $resolver = $this->getResolver();
-        $storageCache = $this->getStorageCache(['id1' => $data]);
+        $storageCache = $this->getStorageCache();
         $logger = $this->getLogger();
 
         $repository = $this->getDoctrineRepository(
@@ -189,508 +235,475 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
             $resolver,
             $storageCache,
             $logger,
-            User::class,
-            'users'
+            ModelInterface::class,
+            'models'
         );
 
-        /** @var User $user */
-        $user = $repository->find('id1');
+        $model = $repository->findOneBy(['modelname' => 'model1']);
 
-        self::assertInstanceOf(User::class, $user);
+        self::assertInstanceOf(ModelInterface::class, $model);
 
-        self::assertSame('id1', $user->getId());
-        self::assertSame('username', $user->getUsername());
-        self::assertSame('password', $user->getPassword());
-        self::assertTrue($user->isActive());
+        self::assertSame('id1', $model->getId());
+        self::assertSame('model1', $model->getUsername());
+        self::assertSame('password', $model->getPassword());
+        self::assertTrue($model->isActive());
 
-        self::assertCount(0, $queryBuilder->__calls);
+        self::assertEquals(
+            [
+                'select' => [
+                    [
+                        '*',
+                    ],
+                ],
+                'from' => [
+                    [
+                        'models',
+                        null,
+                    ],
+                ],
+                'setFirstResult' => [
+                    [
+                        0,
+                    ],
+                ],
+                'setMaxResults' => [
+                    [
+                        1,
+                    ],
+                ],
+                'andWhere' => [
+                    [
+                        [
+                            'method' => 'eq',
+                            'arguments' => [
+                                'modelname',
+                                ':modelname',
+                            ],
+                        ],
+                    ],
+                ],
+                'setParameter' => [
+                    [
+                        'modelname',
+                        'model1',
+                        null,
+                    ],
+                ],
+            ],
+            $queryBuilder->__calls
+        );
 
         self::assertCount(1, $storageCache->__data);
-        self::assertInstanceOf(ModelInterface::class, $storageCache->__data['id1']);
-
-        self::assertCount(1, $logger->__logs);
-        self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
-        self::assertSame('model: find row within table {table} with id {id}', $logger->__logs[0]['message']);
-        self::assertSame(['table' => 'users', 'id' => 'id1'], $logger->__logs[0]['context']);
-    }
-
-    public function testFindOneByNotFound()
-    {
-        $queryBuilder = $this->getQueryBuilder([
-            $this->getStatement(\PDO::FETCH_ASSOC, false),
-        ]);
-
-        $resolver = $this->getResolver();
-        $storageCache = $this->getStorageCache();
-        $logger = $this->getLogger();
-
-        $repository = $this->getDoctrineRepository(
-            $this->getConnection(['queryBuilder' => [$queryBuilder]]),
-            $resolver,
-            $storageCache,
-            $logger,
-            User::class,
-            'users'
-        );
-
-        self::assertNull($repository->findOneBy(['username' => 'user1']));
-
-        self::assertEquals(
-            [
-                'select' => [
-                    [
-                        '*',
-                    ],
-                ],
-                'from' => [
-                    [
-                        'users',
-                        null,
-                    ],
-                ],
-                'andWhere' => [
-                    [
-                        [
-                            'method' => 'eq',
-                            'arguments' => [
-                                'username',
-                                ':username',
-                            ],
-                        ],
-                    ],
-                ],
-                'setParameter' => [
-                    [
-                        'username',
-                        'user1',
-                        null,
-                    ],
-                ],
-                'setMaxResults' => [
-                    [
-                        1,
-                    ],
-                ],
-            ],
-            $queryBuilder->__calls
-        );
-
-        self::assertCount(0, $storageCache->__data);
-
-        self::assertCount(2, $logger->__logs);
-        self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
-        self::assertSame('model: find rows within table {table} with criteria {criteria}', $logger->__logs[0]['message']);
-        self::assertSame(['table' => 'users', 'criteria' => ['username' => 'user1']], $logger->__logs[0]['context']);
-        self::assertSame(LogLevel::WARNING, $logger->__logs[1]['level']);
-        self::assertSame('model: model {model} with criteria {criteria} not found', $logger->__logs[1]['message']);
-        self::assertSame(['table' => 'users', 'criteria' => ['username' => 'user1']], $logger->__logs[1]['context']);
-    }
-
-    public function testFindOneByFound()
-    {
-        $queryBuilder = $this->getQueryBuilder([
-            $this->getStatement(\PDO::FETCH_ASSOC, [
-                'id' => 'id1',
-                'username' => 'user1',
-                'password' => 'password',
-                'active' => true,
-            ]),
-        ]);
-
-        $resolver = $this->getResolver();
-        $storageCache = $this->getStorageCache();
-        $logger = $this->getLogger();
-
-        $repository = $this->getDoctrineRepository(
-            $this->getConnection(['queryBuilder' => [$queryBuilder]]),
-            $resolver,
-            $storageCache,
-            $logger,
-            User::class,
-            'users'
-        );
-
-        /** @var User $user */
-        $user = $repository->findOneBy(['username' => 'user1']);
-
-        self::assertInstanceOf(User::class, $user);
-
-        self::assertSame('id1', $user->getId());
-        self::assertSame('user1', $user->getUsername());
-        self::assertSame('password', $user->getPassword());
-        self::assertTrue($user->isActive());
-
-        self::assertEquals(
-            [
-                'select' => [
-                    [
-                        '*',
-                    ],
-                ],
-                'from' => [
-                    [
-                        'users',
-                        null,
-                    ],
-                ],
-                'andWhere' => [
-                    [
-                        [
-                            'method' => 'eq',
-                            'arguments' => [
-                                'username',
-                                ':username',
-                            ],
-                        ],
-                    ],
-                ],
-                'setParameter' => [
-                    [
-                        'username',
-                        'user1',
-                        null,
-                    ],
-                ],
-                'setMaxResults' => [
-                    [
-                        1,
-                    ],
-                ],
-            ],
-            $queryBuilder->__calls
-        );
-
-        self::assertCount(0, $storageCache->__data);
-
-        self::assertCount(1, $logger->__logs);
-        self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
-        self::assertSame('model: find rows within table {table} with criteria {criteria}', $logger->__logs[0]['message']);
-        self::assertSame(['table' => 'users', 'criteria' => ['username' => 'user1']], $logger->__logs[0]['context']);
-    }
-
-    public function testFindByNotFound()
-    {
-        $queryBuilder = $this->getQueryBuilder([
-            $this->getStatement(\PDO::FETCH_ASSOC, []),
-        ]);
-
-        $resolver = $this->getResolver();
-        $storageCache = $this->getStorageCache();
-        $logger = $this->getLogger();
-
-        $repository = $this->getDoctrineRepository(
-            $this->getConnection(['queryBuilder' => [$queryBuilder]]),
-            $resolver,
-            $storageCache,
-            $logger,
-            User::class,
-            'users'
-        );
-
-        self::assertSame([], $repository->findBy(['active' => true]));
-
-        self::assertEquals(
-            [
-                'select' => [
-                    [
-                        '*',
-                    ],
-                ],
-                'from' => [
-                    [
-                        'users',
-                        null,
-                    ],
-                ],
-                'setFirstResult' => [[null]],
-                'setMaxResults' => [[null]],
-                'andWhere' => [
-                    [
-                        [
-                            'method' => 'eq',
-                            'arguments' => [
-                                'active',
-                                ':active',
-                            ],
-                        ],
-                    ],
-                ],
-                'setParameter' => [
-                    [
-                        'active',
-                        true,
-                        null,
-                    ],
-                ],
-            ],
-            $queryBuilder->__calls
-        );
-
-        self::assertCount(0, $storageCache->__data);
+        self::assertArrayHasKey('id1', $storageCache->__data);
+        self::assertSame($entry, $storageCache->__data['id1']);
 
         self::assertCount(1, $logger->__logs);
         self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
         self::assertSame('model: find rows within table {table} with criteria {criteria}', $logger->__logs[0]['message']);
         self::assertSame([
-            'table' => 'users',
-            'criteria' => ['active' => true],
+            'table' => 'models',
+            'criteria' => ['modelname' => 'model1'],
             'orderBy' => null,
-            'limit' => null,
-            'offset' => null
+            'limit' => 1,
+            'offset' => 0,
         ], $logger->__logs[0]['context']);
     }
 
-    public function testFindByFound()
-    {
-        $queryBuilder = $this->getQueryBuilder([
-            $this->getStatement(\PDO::FETCH_ASSOC, [
-                [
-                    'id' => 'id1',
-                    'username' => 'user1',
-                    'password' => 'password',
-                    'active' => true,
-                ],
-                [
-                    'id' => 'id2',
-                    'username' => 'user2',
-                    'password' => 'password',
-                    'active' => true,
-                ],
-            ]),
-        ]);
+//    public function testFindOneByNotFound()
+//    {
+//        $queryBuilder = $this->getQueryBuilder([
+//            $this->getStatement(\PDO::FETCH_ASSOC, false),
+//        ]);
 
-        $resolver = $this->getResolver();
-        $storageCache = $this->getStorageCache();
-        $logger = $this->getLogger();
+//        $resolver = $this->getResolver();
+//        $storageCache = $this->getStorageCache();
+//        $logger = $this->getLogger();
 
-        $repository = $this->getDoctrineRepository(
-            $this->getConnection(['queryBuilder' => [$queryBuilder]]),
-            $resolver,
-            $storageCache,
-            $logger,
-            User::class,
-            'users'
-        );
+//        $repository = $this->getDoctrineRepository(
+//            $this->getConnection(['queryBuilder' => [$queryBuilder]]),
+//            $resolver,
+//            $storageCache,
+//            $logger,
+//            ModelInterface::class,
+//            'models'
+//        );
 
-        $users = $repository->findBy(['active' => true]);
+//        self::assertNull($repository->findOneBy(['modelname' => 'model1']));
 
-        self::assertCount(2, $users);
+//        self::assertEquals(
+//            [
+//                'select' => [
+//                    [
+//                        '*',
+//                    ],
+//                ],
+//                'from' => [
+//                    [
+//                        'models',
+//                        null,
+//                    ],
+//                ],
+//                'andWhere' => [
+//                    [
+//                        [
+//                            'method' => 'eq',
+//                            'arguments' => [
+//                                'modelname',
+//                                ':modelname',
+//                            ],
+//                        ],
+//                    ],
+//                ],
+//                'setParameter' => [
+//                    [
+//                        'modelname',
+//                        'model1',
+//                        null,
+//                    ],
+//                ],
+//                'setMaxResults' => [
+//                    [
+//                        1,
+//                    ],
+//                ],
+//            ],
+//            $queryBuilder->__calls
+//        );
 
-        self::assertInstanceOf(User::class, $users[0]);
+//        self::assertCount(0, $storageCache->__data);
 
-        self::assertSame('id1', $users[0]->getId());
-        self::assertSame('user1', $users[0]->getUsername());
-        self::assertSame('password', $users[0]->getPassword());
-        self::assertTrue($users[0]->isActive());
+//        self::assertCount(2, $logger->__logs);
+//        self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
+//        self::assertSame('model: find rows within table {table} with criteria {criteria}', $logger->__logs[0]['message']);
+//        self::assertSame(['table' => 'models', 'criteria' => ['modelname' => 'model1']], $logger->__logs[0]['context']);
+//        self::assertSame(LogLevel::WARNING, $logger->__logs[1]['level']);
+//        self::assertSame('model: model {model} with criteria {criteria} not found', $logger->__logs[1]['message']);
+//        self::assertSame(['table' => 'models', 'criteria' => ['modelname' => 'model1']], $logger->__logs[1]['context']);
+//    }
 
-        self::assertInstanceOf(User::class, $users[1]);
+//    public function testFindByNotFound()
+//    {
+//        $queryBuilder = $this->getQueryBuilder([
+//            $this->getStatement(\PDO::FETCH_ASSOC, []),
+//        ]);
 
-        self::assertSame('id2', $users[1]->getId());
-        self::assertSame('user2', $users[1]->getUsername());
-        self::assertSame('password', $users[1]->getPassword());
-        self::assertTrue($users[1]->isActive());
+//        $resolver = $this->getResolver();
+//        $storageCache = $this->getStorageCache();
+//        $logger = $this->getLogger();
 
-        self::assertEquals(
-            [
-                'select' => [
-                    [
-                        '*',
-                    ],
-                ],
-                'from' => [
-                    [
-                        'users',
-                        null,
-                    ],
-                ],
-                'andWhere' => [
-                    [
-                        [
-                            'method' => 'eq',
-                            'arguments' => [
-                                'active',
-                                ':active',
-                            ],
-                        ],
-                    ],
-                ],
-                'setParameter' => [
-                    [
-                        'active',
-                        true,
-                        null,
-                    ],
-                ],
-            ],
-            $queryBuilder->__calls
-        );
+//        $repository = $this->getDoctrineRepository(
+//            $this->getConnection(['queryBuilder' => [$queryBuilder]]),
+//            $resolver,
+//            $storageCache,
+//            $logger,
+//            ModelInterface::class,
+//            'models'
+//        );
 
-        self::assertCount(0, $storageCache->__data);
+//        self::assertSame([], $repository->findBy(['active' => true]));
 
-        self::assertCount(1, $logger->__logs);
-        self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
-        self::assertSame('model: find rows within table {table} with criteria {criteria}', $logger->__logs[0]['message']);
-        self::assertSame(['table' => 'users', 'criteria' => ['active' => true]], $logger->__logs[0]['context']);
-    }
+//        self::assertEquals(
+//            [
+//                'select' => [
+//                    [
+//                        '*',
+//                    ],
+//                ],
+//                'from' => [
+//                    [
+//                        'models',
+//                        null,
+//                    ],
+//                ],
+//                'setFirstResult' => [[null]],
+//                'setMaxResults' => [[null]],
+//                'andWhere' => [
+//                    [
+//                        [
+//                            'method' => 'eq',
+//                            'arguments' => [
+//                                'active',
+//                                ':active',
+//                            ],
+//                        ],
+//                    ],
+//                ],
+//                'setParameter' => [
+//                    [
+//                        'active',
+//                        true,
+//                        null,
+//                    ],
+//                ],
+//            ],
+//            $queryBuilder->__calls
+//        );
 
-    public function testPersistWithNewUser()
-    {
-        $resolver = $this->getResolver();
-        $storageCache = $this->getStorageCache();
-        $logger = $this->getLogger();
+//        self::assertCount(0, $storageCache->__data);
 
-        $repository = $this->getDoctrineRepository(
-            $this->getConnection(
-                [
-                    'insert' => [
-                        [
-                            'arguments' => [
-                                'users',
-                                [
-                                    'id' => 'id1',
-                                    'username' => 'user1',
-                                    'password' => 'password',
-                                    'active' => true,
-                                ],
-                                [],
-                            ],
-                            'return' => 1,
-                        ],
-                    ],
-                ]
-            ),
-            $resolver,
-            $storageCache,
-            $logger,
-            User::class,
-            'users'
-        );
+//        self::assertCount(1, $logger->__logs);
+//        self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
+//        self::assertSame('model: find rows within table {table} with criteria {criteria}', $logger->__logs[0]['message']);
+//        self::assertSame([
+//            'table' => 'models',
+//            'criteria' => ['active' => true],
+//            'orderBy' => null,
+//            'limit' => null,
+//            'offset' => null
+//        ], $logger->__logs[0]['context']);
+//    }
 
-        $user = new User('id1');
-        $user->setUsername('user1');
-        $user->setPassword('password');
-        $user->setActive(true);
+//    public function testFindByFound()
+//    {
+//        $queryBuilder = $this->getQueryBuilder([
+//            $this->getStatement(\PDO::FETCH_ASSOC, [
+//                [
+//                    'id' => 'id1',
+//                    'modelname' => 'model1',
+//                    'password' => 'password',
+//                    'active' => true,
+//                ],
+//                [
+//                    'id' => 'id2',
+//                    'modelname' => 'model2',
+//                    'password' => 'password',
+//                    'active' => true,
+//                ],
+//            ]),
+//        ]);
 
-        $repository->persist($user);
+//        $resolver = $this->getResolver();
+//        $storageCache = $this->getStorageCache();
+//        $logger = $this->getLogger();
 
-        self::assertCount(1, $storageCache->__data);
-        self::assertArrayHasKey('id1', $storageCache->__data);
-        self::assertInstanceOf(ModelInterface::class, $storageCache->__data['id1']);
+//        $repository = $this->getDoctrineRepository(
+//            $this->getConnection(['queryBuilder' => [$queryBuilder]]),
+//            $resolver,
+//            $storageCache,
+//            $logger,
+//            ModelInterface::class,
+//            'models'
+//        );
 
-        self::assertCount(1, $logger->__logs);
-        self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
-        self::assertSame('model: insert model {model} with id {id}', $logger->__logs[0]['message']);
-        self::assertSame(['table' => 'users', 'id' => 'id1'], $logger->__logs[0]['context']);
-    }
+//        $models = $repository->findBy(['active' => true]);
 
-    public function testPersistWithExistingUser()
-    {
-        $resolver = $this->getResolver();
-        $storageCache = $this->getStorageCache();
-        $logger = $this->getLogger();
+//        self::assertCount(2, $models);
 
-        $repository = $this->getDoctrineRepository(
-            $this->getConnection(
-                [
-                    'select' => []
-                ],
-                [
-                    'update' => [
-                        [
-                            'arguments' => [
-                                'users',
-                                [
-                                    'id' => 'id1',
-                                    'username' => 'user1',
-                                    'password' => 'password',
-                                    'active' => true,
-                                ],
-                                [
-                                    'id' => 'id1',
-                                ],
-                                [],
-                            ],
-                            'return' => 1,
-                        ],
-                    ],
-                ]
-            ),
-            $resolver,
-            $storageCache,
-            $logger,
-            User::class,
-            'users'
-        );
+//        self::assertInstanceOf(ModelInterface::class, $models[0]);
 
-        $user = new User('id1');
-        $user->setUsername('user1');
-        $user->setPassword('password');
-        $user->setActive(true);
+//        self::assertSame('id1', $models[0]->getId());
+//        self::assertSame('model1', $models[0]->getUsername());
+//        self::assertSame('password', $models[0]->getPassword());
+//        self::assertTrue($models[0]->isActive());
 
-        $repository->persist($user);
+//        self::assertInstanceOf(ModelInterface::class, $models[1]);
 
-        self::assertCount(1, $storageCache->__data);
-        self::assertArrayHasKey('id1', $storageCache->__data);
-        self::assertInstanceOf(ModelInterface::class, $storageCache->__data['id1']);
+//        self::assertSame('id2', $models[1]->getId());
+//        self::assertSame('model2', $models[1]->getUsername());
+//        self::assertSame('password', $models[1]->getPassword());
+//        self::assertTrue($models[1]->isActive());
 
-        self::assertCount(1, $logger->__logs);
-        self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
-        self::assertSame('model: update model {model} with id {id}', $logger->__logs[0]['message']);
-        self::assertSame(['table' => 'users', 'id' => 'id1'], $logger->__logs[0]['context']);
-    }
+//        self::assertEquals(
+//            [
+//                'select' => [
+//                    [
+//                        '*',
+//                    ],
+//                ],
+//                'from' => [
+//                    [
+//                        'models',
+//                        null,
+//                    ],
+//                ],
+//                'andWhere' => [
+//                    [
+//                        [
+//                            'method' => 'eq',
+//                            'arguments' => [
+//                                'active',
+//                                ':active',
+//                            ],
+//                        ],
+//                    ],
+//                ],
+//                'setParameter' => [
+//                    [
+//                        'active',
+//                        true,
+//                        null,
+//                    ],
+//                ],
+//            ],
+//            $queryBuilder->__calls
+//        );
 
-    public function testRemove()
-    {
-        $resolver = $this->getResolver();
-        $storageCache = $this->getStorageCache();
-        $logger = $this->getLogger();
+//        self::assertCount(0, $storageCache->__data);
 
-        $repository = $this->getDoctrineRepository(
-            $this->getConnection(
-                [
-                    'delete' => [
-                        [
-                            'arguments' => [
-                                'users',
-                                [
-                                    'id' => 'id1',
-                                ],
-                                [],
-                            ],
-                            'return' => 1,
-                        ],
-                    ],
-                ]
-            ),
-            $resolver,
-            $storageCache,
-            $logger,
-            User::class,
-            'users'
-        );
+//        self::assertCount(1, $logger->__logs);
+//        self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
+//        self::assertSame('model: find rows within table {table} with criteria {criteria}', $logger->__logs[0]['message']);
+//        self::assertSame(['table' => 'models', 'criteria' => ['active' => true]], $logger->__logs[0]['context']);
+//    }
 
-        $user = new User('id1');
-        $user->setUsername('user1');
-        $user->setPassword('password');
-        $user->setActive(true);
+//    public function testPersistWithNewUser()
+//    {
+//        $resolver = $this->getResolver();
+//        $storageCache = $this->getStorageCache();
+//        $logger = $this->getLogger();
 
-        $repository->remove($user);
+//        $repository = $this->getDoctrineRepository(
+//            $this->getConnection(
+//                [
+//                    'insert' => [
+//                        [
+//                            'arguments' => [
+//                                'models',
+//                                [
+//                                    'id' => 'id1',
+//                                    'modelname' => 'model1',
+//                                    'password' => 'password',
+//                                    'active' => true,
+//                                ],
+//                                [],
+//                            ],
+//                            'return' => 1,
+//                        ],
+//                    ],
+//                ]
+//            ),
+//            $resolver,
+//            $storageCache,
+//            $logger,
+//            ModelInterface::class,
+//            'models'
+//        );
 
-        self::assertCount(0, $storageCache->__data);
+//        $model = new User('id1');
+//        $model->setUsername('model1');
+//        $model->setPassword('password');
+//        $model->setActive(true);
 
-        self::assertCount(1, $logger->__logs);
-        self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
-        self::assertSame('model: remove row from table {table} with id {id}', $logger->__logs[0]['message']);
-        self::assertSame(['table' => 'users', 'id' => 'id1'], $logger->__logs[0]['context']);
-    }
+//        $repository->persist($model);
+
+//        self::assertCount(1, $storageCache->__data);
+//        self::assertArrayHasKey('id1', $storageCache->__data);
+//        self::assertInstanceOf(ModelInterface::class, $storageCache->__data['id1']);
+
+//        self::assertCount(1, $logger->__logs);
+//        self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
+//        self::assertSame('model: insert model {model} with id {id}', $logger->__logs[0]['message']);
+//        self::assertSame(['table' => 'models', 'id' => 'id1'], $logger->__logs[0]['context']);
+//    }
+
+//    public function testPersistWithExistingUser()
+//    {
+//        $resolver = $this->getResolver();
+//        $storageCache = $this->getStorageCache();
+//        $logger = $this->getLogger();
+
+//        $repository = $this->getDoctrineRepository(
+//            $this->getConnection(
+//                [
+//                    'select' => []
+//                ],
+//                [
+//                    'update' => [
+//                        [
+//                            'arguments' => [
+//                                'models',
+//                                [
+//                                    'id' => 'id1',
+//                                    'modelname' => 'model1',
+//                                    'password' => 'password',
+//                                    'active' => true,
+//                                ],
+//                                [
+//                                    'id' => 'id1',
+//                                ],
+//                                [],
+//                            ],
+//                            'return' => 1,
+//                        ],
+//                    ],
+//                ]
+//            ),
+//            $resolver,
+//            $storageCache,
+//            $logger,
+//            ModelInterface::class,
+//            'models'
+//        );
+
+//        $model = new User('id1');
+//        $model->setUsername('model1');
+//        $model->setPassword('password');
+//        $model->setActive(true);
+
+//        $repository->persist($model);
+
+//        self::assertCount(1, $storageCache->__data);
+//        self::assertArrayHasKey('id1', $storageCache->__data);
+//        self::assertInstanceOf(ModelInterface::class, $storageCache->__data['id1']);
+
+//        self::assertCount(1, $logger->__logs);
+//        self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
+//        self::assertSame('model: update model {model} with id {id}', $logger->__logs[0]['message']);
+//        self::assertSame(['table' => 'models', 'id' => 'id1'], $logger->__logs[0]['context']);
+//    }
+
+//    public function testRemove()
+//    {
+//        $resolver = $this->getResolver();
+//        $storageCache = $this->getStorageCache();
+//        $logger = $this->getLogger();
+
+//        $repository = $this->getDoctrineRepository(
+//            $this->getConnection(
+//                [
+//                    'delete' => [
+//                        [
+//                            'arguments' => [
+//                                'models',
+//                                [
+//                                    'id' => 'id1',
+//                                ],
+//                                [],
+//                            ],
+//                            'return' => 1,
+//                        ],
+//                    ],
+//                ]
+//            ),
+//            $resolver,
+//            $storageCache,
+//            $logger,
+//            ModelInterface::class,
+//            'models'
+//        );
+
+//        $model = new User('id1');
+//        $model->setUsername('model1');
+//        $model->setPassword('password');
+//        $model->setActive(true);
+
+//        $repository->remove($model);
+
+//        self::assertCount(0, $storageCache->__data);
+
+//        self::assertCount(1, $logger->__logs);
+//        self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
+//        self::assertSame('model: remove row from table {table} with id {id}', $logger->__logs[0]['message']);
+//        self::assertSame(['table' => 'models', 'id' => 'id1'], $logger->__logs[0]['context']);
+//    }
 
     /**
-     * @param Connection          $connection
-     * @param ResolverInterface   $resolver
+     * @param Connection            $connection
+     * @param ResolverInterface     $resolver
      * @param StorageCacheInterface $storageCache
-     * @param LoggerInterface     $logger
-     * @param string              $modelClass
-     * @param string              $table
+     * @param LoggerInterface       $logger
+     * @param string                $modelClass
+     * @param string                $table
      *
      * @return AbstractDoctrineRepository
      */
@@ -709,7 +722,10 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
             ->setMethods(['getModelClass', 'getTable'])
             ->getMockForAbstractClass();
 
-        $repository->expects(self::any())->method('getModelClass')->willReturn($modelClass);
+        $repository->expects(self::any())->method('fromPersistence')->willReturnCallback(function (array $data) {
+            return ModelInterface::fromPersistence($data);
+        });
+
         $repository->expects(self::any())->method('getTable')->willReturn($table);
 
         return $repository;

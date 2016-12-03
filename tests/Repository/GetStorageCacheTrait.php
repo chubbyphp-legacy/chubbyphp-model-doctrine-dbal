@@ -20,7 +20,10 @@ trait GetStorageCacheTrait
             ->getMockForAbstractClass()
         ;
 
-        $storageCache->__data = $data;
+        $storageCache->__data = [];
+        foreach ($data as $element) {
+            $storageCache->__data[$element['id']] = $element;
+        }
 
         $storageCache
             ->expects(self::any())
@@ -41,8 +44,8 @@ trait GetStorageCacheTrait
         $storageCache
             ->expects(self::any())
             ->method('set')
-            ->willReturnCallback(function (ModelInterface $model) use ($storageCache) {
-                $storageCache->__data[$model->getId()] = $model;
+            ->willReturnCallback(function (string $id, array $entry) use ($storageCache) {
+                $storageCache->__data[$id] = $entry;
 
                 return $storageCache;
             })

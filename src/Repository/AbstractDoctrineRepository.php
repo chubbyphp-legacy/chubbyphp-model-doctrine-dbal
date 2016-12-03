@@ -38,10 +38,10 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
     protected $logger;
 
     /**
-     * @param Connection           $connection
-     * @param ResolverInterface    $resolver
-     * @param StorageCacheInterface  $storageCache
-     * @param LoggerInterface|null $logger
+     * @param Connection            $connection
+     * @param ResolverInterface     $resolver
+     * @param StorageCacheInterface $storageCache
+     * @param LoggerInterface|null  $logger
      */
     public function __construct(
         Connection $connection,
@@ -178,6 +178,7 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
 
     /**
      * @param ModelInterface $model
+     *
      * @return RepositoryInterface
      */
     public function persist(ModelInterface $model): RepositoryInterface
@@ -213,6 +214,7 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
 
     /**
      * @param ModelInterface $model
+     *
      * @return RepositoryInterface
      */
     public function remove(ModelInterface $model): RepositoryInterface

@@ -9,7 +9,6 @@ use Doctrine\DBAL\Query\QueryBuilder;
 
 trait GetConnectionTrait
 {
-
     /**
      * @param array $stacks
      *
@@ -149,7 +148,7 @@ trait GetConnectionTrait
      *
      * @return QueryBuilder
      */
-    private function getQueryBuilder(array $executeStack): QueryBuilder
+    private function getQueryBuilder(array $executeStack = []): QueryBuilder
     {
         $modifiers = [
             'setParameter',
