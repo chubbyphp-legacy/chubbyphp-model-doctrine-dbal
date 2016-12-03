@@ -178,8 +178,9 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
 
     /**
      * @param ModelInterface $model
+     * @return RepositoryInterface
      */
-    public function persist(ModelInterface $model)
+    public function persist(ModelInterface $model): RepositoryInterface
     {
         $id = $model->getId();
         $row = $model->toPersistence();
@@ -206,12 +207,15 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
         }
 
         $this->storageCache->set($id, $row);
+
+        return $this;
     }
 
     /**
      * @param ModelInterface $model
+     * @return RepositoryInterface
      */
-    public function remove(ModelInterface $model)
+    public function remove(ModelInterface $model): RepositoryInterface
     {
         $table = $this->getTable();
 
@@ -233,6 +237,18 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
         $this->connection->delete($table, ['id' => $model->getId()]);
 
         $this->storageCache->remove($model->getId());
+
+        return $this;
+    }
+
+    /**
+     * @return RepositoryInterface
+     */
+    public function clear(): RepositoryInterface
+    {
+        $this->storageCache->clear();
+
+        return $this;
     }
 
     /**
