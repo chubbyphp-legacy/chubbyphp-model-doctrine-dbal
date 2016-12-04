@@ -100,7 +100,13 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
         if ([] === $models) {
             $this->logger->warning(
                 'model: row within table {table} with criteria {criteria} not found',
-                ['table' => $this->getTable(), 'criteria' => $criteria]
+                [
+                    'table' => $this->getTable(),
+                    'criteria' => $criteria,
+                    'orderBy' => $orderBy,
+                    'limit' => 1,
+                    'offset' => 0
+                ]
             );
 
             return null;
