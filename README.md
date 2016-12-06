@@ -10,7 +10,7 @@
 ## Requirements
 
  * php: ~7.0
- * chubbyphp/chubbyphp-model: ~2.0@dev
+ * chubbyphp/chubbyphp-model: ~2.0
  * doctrine/dbal: ^2.5.5
 
 ## Installation
