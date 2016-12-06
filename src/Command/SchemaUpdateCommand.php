@@ -62,6 +62,25 @@ final class SchemaUpdateCommand
         }
 
         $this->update($output, $statements, $dump, $force);
+
+        return 0;
+    }
+
+    /**
+     * @param OutputInterface $output
+     * @param array           $statements
+     * @param bool            $dump
+     * @param bool            $force
+     */
+    private function update(OutputInterface $output, array $statements, bool $dump, bool $force)
+    {
+        if ($dump && $force) {
+            $this->dumpAndForce($output, $statements);
+        } elseif ($dump) {
+            $this->dump($output, $statements);
+        } else {
+            $this->force($statements);
+        }
     }
 
     /**
@@ -83,35 +102,47 @@ final class SchemaUpdateCommand
     /**
      * @param OutputInterface $output
      * @param array           $statements
-     * @param bool            $dump
-     * @param bool            $force
      */
-    private function update(OutputInterface $output, array $statements, bool $dump, bool $force)
+    private function dump(OutputInterface $output, array $statements)
     {
-        if ($dump) {
-            $output->writeln('<info>Begin transaction</info>');
-        }
-
-        if ($force) {
-            $this->connection->beginTransaction();
-        }
+        $output->writeln('<info>Begin transaction</info>');
 
         foreach ($statements as $statement) {
-            if ($dump) {
-                $output->writeln($statement);
-            }
-
-            if ($force) {
-                $this->connection->exec($statement);
-            }
+            $output->writeln($statement);
         }
 
-        if ($dump) {
-            $output->writeln('<info>Commit</info>');
+        $output->writeln('<info>Commit</info>');
+    }
+
+    /**
+     * @param array $statements
+     */
+    private function force(array $statements)
+    {
+        $this->connection->beginTransaction();
+
+        foreach ($statements as $statement) {
+            $this->connection->exec($statement);
         }
 
-        if ($force) {
-            $this->connection->commit();
+        $this->connection->commit();
+    }
+
+    /**
+     * @param OutputInterface $output
+     * @param array           $statements
+     */
+    private function dumpAndForce(OutputInterface $output, array $statements)
+    {
+        $output->writeln('<info>Begin transaction</info>');
+        $this->connection->beginTransaction();
+
+        foreach ($statements as $statement) {
+            $output->writeln($statement);
+            $this->connection->exec($statement);
         }
+
+        $output->writeln('<info>Commit</info>');
+        $this->connection->commit();
     }
 }
