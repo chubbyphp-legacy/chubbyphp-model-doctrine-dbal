@@ -40,34 +40,68 @@ final class CreateDatabaseCommand
      */
     public function __invoke(InputInterface $input, OutputInterface $output)
     {
-        $connection = $this->connection;
+        $parameters = $this->getParameters();
 
-        $params = $connection->getParams();
+        $name = $this->getName($parameters);
+
+        // Need to get rid of _every_ occurrence of dbname from connection configuration
+        unset($parameters['dbname'], $parameters['path'], $parameters['url']);
+
+        $tmpConnection = DriverManager::getConnection($parameters);
+        $shouldNotCreateDatabase = in_array($name, $tmpConnection->getSchemaManager()->listDatabases());
+
+        // Only quote if we don't have a path
+        if (!isset($parameters['path'])) {
+            $name = $tmpConnection->getDatabasePlatform()->quoteSingleIdentifier($name);
+        }
+
+        return $this->createDatabase($output, $tmpConnection, $name, $shouldNotCreateDatabase);
+    }
+
+    /**
+     * @return array
+     */
+    private function getParameters(): array
+    {
+        $params = $this->connection->getParams();
 
         if (isset($params['master'])) {
             $params = $params['master'];
         }
 
-        $hasPath = isset($params['path']);
-        $name = $hasPath ? $params['path'] : (isset($params['dbname']) ? $params['dbname'] : false);
+        return $params;
+    }
 
-        if (!$name) {
-            throw new \InvalidArgumentException("Connection does not contain a 'path' or 'dbname' parameter.");
+    /**
+     * @return string
+     */
+    private function getName(array $parameters): string
+    {
+        if (isset($parameters['path'])) {
+            return $parameters['path'];
         }
 
-        // Need to get rid of _every_ occurrence of dbname from connection configuration
-        unset($params['dbname'], $params['path'], $params['url']);
-
-        $tmpConnection = DriverManager::getConnection($params);
-        $shouldNotCreateDatabase = in_array($name, $tmpConnection->getSchemaManager()->listDatabases());
-
-        // Only quote if we don't have a path
-        if (!$hasPath) {
-            $name = $tmpConnection->getDatabasePlatform()->quoteSingleIdentifier($name);
+        if (isset($parameters['dbname'])) {
+            return $parameters['dbname'];
         }
 
-        $error = false;
+        throw new \InvalidArgumentException("Connection does not contain a 'path' or 'dbname' parameter.");
+    }
 
+    /**
+     * @param OutputInterface $output
+     * @param Connection      $tmpConnection
+     * @param string          $name
+     * @param bool            $shouldNotCreateDatabase
+     *
+     * @return int
+     */
+    private function createDatabase(
+        OutputInterface $output,
+        Connection $tmpConnection,
+        string $name,
+        bool $shouldNotCreateDatabase
+    ): int {
         try {
             if ($shouldNotCreateDatabase) {
                 $output->writeln(sprintf('<info>Database <comment>%s</comment> already exists.</info>', $name));
@@ -75,14 +109,13 @@ final class CreateDatabaseCommand
                 $tmpConnection->getSchemaManager()->createDatabase($name);
                 $output->writeln(sprintf('<info>Created database <comment>%s</comment>', $name));
             }
+
+            return 0;
         } catch (\Exception $e) {
             $output->writeln(sprintf('<error>Could not create database <comment>%s</comment></error>', $name));
             $output->writeln(sprintf('<error>%s</error>', $e->getMessage()));
-            $error = true;
+
+            return 1;
         }
-
-        $tmpConnection->close();
-
-        return $error ? 1 : 0;
     }
 }
