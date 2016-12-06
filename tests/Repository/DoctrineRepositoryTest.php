@@ -26,7 +26,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
         $modelEntry = [
             'id' => 'id1',
             'name' => 'name3',
-            'category' => 'category1'
+            'category' => 'category1',
         ];
 
         $queryBuilder = $this->getQueryBuilder();
@@ -38,9 +38,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
             $this->getConnection(['queryBuilder' => [$queryBuilder]]),
             $resolver,
             $storageCache,
-            $logger,
-            ModelInterface::class,
-            'models'
+            $logger
         );
 
         $model = $repository->find('id1');
@@ -66,7 +64,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
         $modelEntry = [
             'id' => 'id1',
             'name' => 'name3',
-            'category' => 'category1'
+            'category' => 'category1',
         ];
 
         $queryBuilder = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, $modelEntry)]);
@@ -79,9 +77,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
             $this->getConnection(['queryBuilder' => [$queryBuilder]]),
             $resolver,
             $storageCache,
-            $logger,
-            ModelInterface::class,
-            'models'
+            $logger
         );
 
         $model = $repository->find('id1');
@@ -129,7 +125,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
 
         self::assertCount(1, $storageCache->__data);
         self::assertArrayHasKey('id1', $storageCache->__data);
-        self::assertSame($modelEntry, $storageCache->__data['id1']);
+        self::assertEquals($modelEntry, $storageCache->__data['id1']);
 
         self::assertCount(1, $logger->__logs);
         self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
@@ -155,9 +151,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
             $this->getConnection(['queryBuilder' => [$queryBuilder]]),
             $resolver,
             $storageCache,
-            $logger,
-            ModelInterface::class,
-            'models'
+            $logger
         );
 
         self::assertNull($repository->find('id1'));
@@ -203,7 +197,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
         self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
         self::assertSame('model: find row within table {table} with id {id}', $logger->__logs[0]['message']);
         self::assertSame(['table' => 'models', 'id' => 'id1'], $logger->__logs[0]['context']);
-        self::assertSame(LogLevel::WARNING, $logger->__logs[1]['level']);
+        self::assertSame(LogLevel::NOTICE, $logger->__logs[1]['level']);
         self::assertSame('model: row within table {table} with id {id} not found', $logger->__logs[1]['message']);
         self::assertSame(['table' => 'models', 'id' => 'id1'], $logger->__logs[1]['context']);
     }
@@ -219,7 +213,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
                 'id' => 'id1',
                 'name' => 'name3',
                 'category' => 'category1',
-            ]
+            ],
         ];
 
         $queryBuilder = $this->getQueryBuilder([
@@ -234,9 +228,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
             $this->getConnection(['queryBuilder' => [$queryBuilder]]),
             $resolver,
             $storageCache,
-            $logger,
-            ModelInterface::class,
-            'models'
+            $logger
         );
 
         $model = $repository->findOneBy(['category' => 'category1'], ['name' => 'ASC']);
@@ -248,64 +240,48 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
         self::assertSame($modelEntries[0]['category'], $model->getCategory());
 
         self::assertEquals(
-            array (
-                'select' =>
-                    array (
-                        0 =>
-                            array (
+            array(
+                'select' => array(
+                        0 => array(
                                 0 => '*',
                             ),
                     ),
-                'from' =>
-                    array (
-                        0 =>
-                            array (
+                'from' => array(
+                        0 => array(
                                 0 => 'models',
-                                1 => NULL,
+                                1 => null,
                             ),
                     ),
-                'setFirstResult' =>
-                    array (
-                        0 =>
-                            array (
+                'setFirstResult' => array(
+                        0 => array(
                                 0 => 0,
                             ),
                     ),
-                'setMaxResults' =>
-                    array (
-                        0 =>
-                            array (
+                'setMaxResults' => array(
+                        0 => array(
                                 0 => 1,
                             ),
                     ),
-                'andWhere' =>
-                    array (
-                        0 =>
-                            array (
-                                0 =>
-                                    array (
+                'andWhere' => array(
+                        0 => array(
+                                0 => array(
                                         'method' => 'eq',
-                                        'arguments' =>
-                                            array (
+                                        'arguments' => array(
                                                 0 => 'category',
                                                 1 => ':category',
                                             ),
                                     ),
                             ),
                     ),
-                'setParameter' =>
-                    array (
-                        0 =>
-                            array (
+                'setParameter' => array(
+                        0 => array(
                                 0 => 'category',
                                 1 => 'category1',
-                                2 => NULL,
+                                2 => null,
                             ),
                     ),
-                'addOrderBy' =>
-                    array (
-                        0 =>
-                            array (
+                'addOrderBy' => array(
+                        0 => array(
                                 0 => 'name',
                                 1 => 'ASC',
                             ),
@@ -316,7 +292,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
 
         self::assertCount(1, $storageCache->__data);
         self::assertArrayHasKey('id1', $storageCache->__data);
-        self::assertSame($modelEntries[0], $storageCache->__data['id1']);
+        self::assertEquals($modelEntries[0], $storageCache->__data['id1']);
 
         self::assertCount(1, $logger->__logs);
         self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
@@ -348,72 +324,54 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
             $this->getConnection(['queryBuilder' => [$queryBuilder]]),
             $resolver,
             $storageCache,
-            $logger,
-            ModelInterface::class,
-            'models'
+            $logger
         );
 
         self::assertNull($repository->findOneBy(['category' => 'category1'], ['name' => 'ASC']));
 
         self::assertEquals(
-            array (
-                'select' =>
-                    array (
-                        0 =>
-                            array (
+            array(
+                'select' => array(
+                        0 => array(
                                 0 => '*',
                             ),
                     ),
-                'from' =>
-                    array (
-                        0 =>
-                            array (
+                'from' => array(
+                        0 => array(
                                 0 => 'models',
-                                1 => NULL,
+                                1 => null,
                             ),
                     ),
-                'setFirstResult' =>
-                    array (
-                        0 =>
-                            array (
+                'setFirstResult' => array(
+                        0 => array(
                                 0 => 0,
                             ),
                     ),
-                'setMaxResults' =>
-                    array (
-                        0 =>
-                            array (
+                'setMaxResults' => array(
+                        0 => array(
                                 0 => 1,
                             ),
                     ),
-                'andWhere' =>
-                    array (
-                        0 =>
-                            array (
-                                0 =>
-                                    array (
+                'andWhere' => array(
+                        0 => array(
+                                0 => array(
                                         'method' => 'eq',
-                                        'arguments' =>
-                                            array (
+                                        'arguments' => array(
                                                 0 => 'category',
                                                 1 => ':category',
                                             ),
                                     ),
                             ),
                     ),
-                'setParameter' =>
-                    array (
-                        0 =>
-                            array (
+                'setParameter' => array(
+                        0 => array(
                                 0 => 'category',
                                 1 => 'category1',
-                                2 => NULL,
+                                2 => null,
                             ),
                     ),
-                'addOrderBy' =>
-                    array (
-                        0 =>
-                            array (
+                'addOrderBy' => array(
+                        0 => array(
                                 0 => 'name',
                                 1 => 'ASC',
                             ),
@@ -434,7 +392,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
             'limit' => 1,
             'offset' => 0,
         ], $logger->__logs[0]['context']);
-        self::assertSame(LogLevel::WARNING, $logger->__logs[1]['level']);
+        self::assertSame(LogLevel::NOTICE, $logger->__logs[1]['level']);
         self::assertSame('model: row within table {table} with criteria {criteria} not found', $logger->__logs[1]['message']);
         self::assertSame([
             'table' => 'models',
@@ -444,30 +402,6 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
             'offset' => 0,
         ], $logger->__logs[1]['context']);
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     /**
      * @covers \Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository::__construct
@@ -482,7 +416,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
                 'id' => 'id1',
                 'name' => 'name3',
                 'category' => 'category1',
-            ]
+            ],
         ];
 
         $queryBuilder = $this->getQueryBuilder([
@@ -497,9 +431,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
             $this->getConnection(['queryBuilder' => [$queryBuilder]]),
             $resolver,
             $storageCache,
-            $logger,
-            ModelInterface::class,
-            'models'
+            $logger
         );
 
         $models = $repository->findBy(['category' => 'category1'], ['name' => 'ASC']);
@@ -514,64 +446,48 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
         self::assertSame($modelEntries[0]['category'], $model->getCategory());
 
         self::assertEquals(
-            array (
-                'select' =>
-                    array (
-                        0 =>
-                            array (
+            array(
+                'select' => array(
+                        0 => array(
                                 0 => '*',
                             ),
                     ),
-                'from' =>
-                    array (
-                        0 =>
-                            array (
+                'from' => array(
+                        0 => array(
                                 0 => 'models',
-                                1 => NULL,
+                                1 => null,
                             ),
                     ),
-                'setFirstResult' =>
-                    array (
-                        0 =>
-                            array (
-                                0 => NULL,
+                'setFirstResult' => array(
+                        0 => array(
+                                0 => null,
                             ),
                     ),
-                'setMaxResults' =>
-                    array (
-                        0 =>
-                            array (
-                                0 => NULL,
+                'setMaxResults' => array(
+                        0 => array(
+                                0 => null,
                             ),
                     ),
-                'andWhere' =>
-                    array (
-                        0 =>
-                            array (
-                                0 =>
-                                    array (
+                'andWhere' => array(
+                        0 => array(
+                                0 => array(
                                         'method' => 'eq',
-                                        'arguments' =>
-                                            array (
+                                        'arguments' => array(
                                                 0 => 'category',
                                                 1 => ':category',
                                             ),
                                     ),
                             ),
                     ),
-                'setParameter' =>
-                    array (
-                        0 =>
-                            array (
+                'setParameter' => array(
+                        0 => array(
                                 0 => 'category',
                                 1 => 'category1',
-                                2 => NULL,
+                                2 => null,
                             ),
                     ),
-                'addOrderBy' =>
-                    array (
-                        0 =>
-                            array (
+                'addOrderBy' => array(
+                        0 => array(
                                 0 => 'name',
                                 1 => 'ASC',
                             ),
@@ -582,7 +498,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
 
         self::assertCount(1, $storageCache->__data);
         self::assertArrayHasKey('id1', $storageCache->__data);
-        self::assertSame($modelEntries[0], $storageCache->__data['id1']);
+        self::assertEquals($modelEntries[0], $storageCache->__data['id1']);
 
         self::assertCount(1, $logger->__logs);
         self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
@@ -616,67 +532,50 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
             $this->getConnection(['queryBuilder' => [$queryBuilder]]),
             $resolver,
             $storageCache,
-            $logger,
-            ModelInterface::class,
-            'models'
+            $logger
         );
 
         self::assertSame([], $repository->findBy(['category' => 'category1']));
 
-
         self::assertEquals(
-            array (
-                'select' =>
-                    array (
-                        0 =>
-                            array (
+            array(
+                'select' => array(
+                        0 => array(
                                 0 => '*',
                             ),
                     ),
-                'from' =>
-                    array (
-                        0 =>
-                            array (
+                'from' => array(
+                        0 => array(
                                 0 => 'models',
-                                1 => NULL,
+                                1 => null,
                             ),
                     ),
-                'setFirstResult' =>
-                    array (
-                        0 =>
-                            array (
-                                0 => NULL,
+                'setFirstResult' => array(
+                        0 => array(
+                                0 => null,
                             ),
                     ),
-                'setMaxResults' =>
-                    array (
-                        0 =>
-                            array (
-                                0 => NULL,
+                'setMaxResults' => array(
+                        0 => array(
+                                0 => null,
                             ),
                     ),
-                'andWhere' =>
-                    array (
-                        0 =>
-                            array (
-                                0 =>
-                                    array (
+                'andWhere' => array(
+                        0 => array(
+                                0 => array(
                                         'method' => 'eq',
-                                        'arguments' =>
-                                            array (
+                                        'arguments' => array(
                                                 0 => 'category',
                                                 1 => ':category',
                                             ),
                                     ),
                             ),
                     ),
-                'setParameter' =>
-                    array (
-                        0 =>
-                            array (
+                'setParameter' => array(
+                        0 => array(
                                 0 => 'category',
                                 1 => 'category1',
-                                2 => NULL,
+                                2 => null,
                             ),
                     ),
             ),
@@ -697,164 +596,225 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
         ], $logger->__logs[0]['context']);
     }
 
-//    public function testPersistWithNewUser()
-//    {
-//        $resolver = $this->getResolver();
-//        $storageCache = $this->getStorageCache();
-//        $logger = $this->getLogger();
+    /**
+     * @covers \Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository::__construct
+     * @covers \Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository::persist
+     * @covers \Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository::insert
+     */
+    public function testPersistWithNewModel()
+    {
+        $resolver = $this->getResolver();
+        $storageCache = $this->getStorageCache();
+        $logger = $this->getLogger();
 
-//        $repository = $this->getDoctrineRepository(
-//            $this->getConnection(
-//                [
-//                    'insert' => [
-//                        [
-//                            'arguments' => [
-//                                'models',
-//                                [
-//                                    'id' => 'id1',
-//                                    'modelname' => 'model1',
-//                                    'password' => 'password',
-//                                    'active' => true,
-//                                ],
-//                                [],
-//                            ],
-//                            'return' => 1,
-//                        ],
-//                    ],
-//                ]
-//            ),
-//            $resolver,
-//            $storageCache,
-//            $logger,
-//            ModelInterface::class,
-//            'models'
-//        );
+        $queryBuilder = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, false)]);
 
-//        $model = new User('id1');
-//        $model->setUsername('model1');
-//        $model->setPassword('password');
-//        $model->setActive(true);
+        $repository = $this->getDoctrineRepository(
+            $this->getConnection(
+                [
+                    'queryBuilder' => [$queryBuilder],
+                    'insert' => [
+                        [
+                            'arguments' => [
+                                'models',
+                                [
+                                    'id' => 'id1',
+                                    'name' => 'name1',
+                                    'category' => 'category1',
+                                ],
+                                [],
+                            ],
+                            'return' => 1,
+                        ],
+                    ],
+                ]
+            ),
+            $resolver,
+            $storageCache,
+            $logger
+        );
 
-//        $repository->persist($model);
+        $model = $this->getModel('id1')->setName('name1')->setCategory('category1');
 
-//        self::assertCount(1, $storageCache->__data);
-//        self::assertArrayHasKey('id1', $storageCache->__data);
-//        self::assertInstanceOf(ModelInterface::class, $storageCache->__data['id1']);
+        $repository->persist($model);
 
-//        self::assertCount(1, $logger->__logs);
-//        self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
-//        self::assertSame('model: insert model {model} with id {id}', $logger->__logs[0]['message']);
-//        self::assertSame(['table' => 'models', 'id' => 'id1'], $logger->__logs[0]['context']);
-//    }
+        self::assertCount(1, $storageCache->__data);
+        self::assertArrayHasKey('id1', $storageCache->__data);
+        self::assertEquals([
+            'id' => 'id1',
+            'name' => 'name1',
+            'category' => 'category1',
+        ], $storageCache->__data['id1']);
 
-//    public function testPersistWithExistingUser()
-//    {
-//        $resolver = $this->getResolver();
-//        $storageCache = $this->getStorageCache();
-//        $logger = $this->getLogger();
+        self::assertCount(3, $logger->__logs);
+        self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
+        self::assertSame('model: find row within table {table} with id {id}', $logger->__logs[0]['message']);
+        self::assertSame(['table' => 'models', 'id' => 'id1'], $logger->__logs[0]['context']);
+        self::assertSame(LogLevel::NOTICE, $logger->__logs[1]['level']);
+        self::assertSame('model: row within table {table} with id {id} not found', $logger->__logs[1]['message']);
+        self::assertSame(['table' => 'models', 'id' => 'id1'], $logger->__logs[1]['context']);
+        self::assertSame(LogLevel::INFO, $logger->__logs[2]['level']);
+        self::assertSame('model: insert row into table {table} with id {id}', $logger->__logs[2]['message']);
+        self::assertSame(['table' => 'models', 'id' => 'id1'], $logger->__logs[2]['context']);
+    }
 
-//        $repository = $this->getDoctrineRepository(
-//            $this->getConnection(
-//                [
-//                    'select' => []
-//                ],
-//                [
-//                    'update' => [
-//                        [
-//                            'arguments' => [
-//                                'models',
-//                                [
-//                                    'id' => 'id1',
-//                                    'modelname' => 'model1',
-//                                    'password' => 'password',
-//                                    'active' => true,
-//                                ],
-//                                [
-//                                    'id' => 'id1',
-//                                ],
-//                                [],
-//                            ],
-//                            'return' => 1,
-//                        ],
-//                    ],
-//                ]
-//            ),
-//            $resolver,
-//            $storageCache,
-//            $logger,
-//            ModelInterface::class,
-//            'models'
-//        );
+    /**
+     * @covers \Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository::__construct
+     * @covers \Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository::persist
+     * @covers \Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository::update
+     */
+    public function testPersistWithExistingModel()
+    {
+        $resolver = $this->getResolver();
+        $storageCache = $this->getStorageCache();
+        $logger = $this->getLogger();
 
-//        $model = new User('id1');
-//        $model->setUsername('model1');
-//        $model->setPassword('password');
-//        $model->setActive(true);
+        $modelEntry = [
+            'id' => 'id1',
+            'name' => 'name3',
+            'category' => 'category1',
+        ];
 
-//        $repository->persist($model);
+        $queryBuilder = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, $modelEntry)]);
 
-//        self::assertCount(1, $storageCache->__data);
-//        self::assertArrayHasKey('id1', $storageCache->__data);
-//        self::assertInstanceOf(ModelInterface::class, $storageCache->__data['id1']);
+        $repository = $this->getDoctrineRepository(
+            $this->getConnection(
+                [
+                    'queryBuilder' => [$queryBuilder],
+                    'update' => [
+                        [
+                            'arguments' => [
+                                'models',
+                                [
+                                    'id' => 'id1',
+                                    'name' => 'name1',
+                                    'category' => 'category1',
+                                ],
+                                [
+                                    'id' => 'id1',
+                                ],
+                                [],
+                            ],
+                            'return' => 1,
+                        ],
+                    ],
+                ]
+            ),
+            $resolver,
+            $storageCache,
+            $logger
+        );
 
-//        self::assertCount(1, $logger->__logs);
-//        self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
-//        self::assertSame('model: update model {model} with id {id}', $logger->__logs[0]['message']);
-//        self::assertSame(['table' => 'models', 'id' => 'id1'], $logger->__logs[0]['context']);
-//    }
+        $model = $this->getModel('id1')->setName('name1')->setCategory('category1');
 
-//    public function testRemove()
-//    {
-//        $resolver = $this->getResolver();
-//        $storageCache = $this->getStorageCache();
-//        $logger = $this->getLogger();
+        $repository->persist($model);
 
-//        $repository = $this->getDoctrineRepository(
-//            $this->getConnection(
-//                [
-//                    'delete' => [
-//                        [
-//                            'arguments' => [
-//                                'models',
-//                                [
-//                                    'id' => 'id1',
-//                                ],
-//                                [],
-//                            ],
-//                            'return' => 1,
-//                        ],
-//                    ],
-//                ]
-//            ),
-//            $resolver,
-//            $storageCache,
-//            $logger,
-//            ModelInterface::class,
-//            'models'
-//        );
+        self::assertCount(1, $storageCache->__data);
+        self::assertArrayHasKey('id1', $storageCache->__data);
+        self::assertEquals([
+            'id' => 'id1',
+            'name' => 'name1',
+            'category' => 'category1',
+        ], $storageCache->__data['id1']);
 
-//        $model = new User('id1');
-//        $model->setUsername('model1');
-//        $model->setPassword('password');
-//        $model->setActive(true);
+        self::assertCount(2, $logger->__logs);
+        self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
+        self::assertSame('model: find row within table {table} with id {id}', $logger->__logs[0]['message']);
+        self::assertSame(['table' => 'models', 'id' => 'id1'], $logger->__logs[0]['context']);
+        self::assertSame(LogLevel::INFO, $logger->__logs[1]['level']);
+        self::assertSame('model: update row into table {table} with id {id}', $logger->__logs[1]['message']);
+        self::assertSame(['table' => 'models', 'id' => 'id1'], $logger->__logs[1]['context']);
+    }
 
-//        $repository->remove($model);
+    /**
+     * @covers \Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository::__construct
+     * @covers \Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository::remove
+     */
+    public function testRemoveModel()
+    {
+        $resolver = $this->getResolver();
+        $storageCache = $this->getStorageCache();
+        $logger = $this->getLogger();
 
-//        self::assertCount(0, $storageCache->__data);
+        $modelEntry = [
+            'id' => 'id1',
+            'name' => 'name3',
+            'category' => 'category1',
+        ];
 
-//        self::assertCount(1, $logger->__logs);
-//        self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
-//        self::assertSame('model: remove row from table {table} with id {id}', $logger->__logs[0]['message']);
-//        self::assertSame(['table' => 'models', 'id' => 'id1'], $logger->__logs[0]['context']);
-//    }
+        $queryBuilder = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, $modelEntry)]);
+
+        $repository = $this->getDoctrineRepository(
+            $this->getConnection(
+                [
+                    'queryBuilder' => [$queryBuilder],
+                    'delete' => [
+                        [
+                            'arguments' => [
+                                'models',
+                                [
+                                    'id' => 'id1',
+                                ],
+                                [],
+                            ],
+                            'return' => 1,
+                        ],
+                    ],
+                ]
+            ),
+            $resolver,
+            $storageCache,
+            $logger
+        );
+
+        $model = $this->getModel('id1')->setName('name1')->setCategory('category1');
+
+        $repository->remove($model);
+
+        self::assertCount(0, $storageCache->__data);
+
+        self::assertCount(1, $logger->__logs);
+        self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
+        self::assertSame('model: remove row from table {table} with id {id}', $logger->__logs[0]['message']);
+        self::assertSame(['table' => 'models', 'id' => 'id1'], $logger->__logs[0]['context']);
+    }
+
+    /**
+     * @covers \Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository::__construct
+     * @covers \Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository::clear()
+     */
+    public function testClear()
+    {
+        $modelEntry = [
+            'id' => 'id1',
+            'name' => 'name3',
+            'category' => 'category1',
+        ];
+
+        $queryBuilder = $this->getQueryBuilder();
+        $resolver = $this->getResolver();
+        $storageCache = $this->getStorageCache([$modelEntry]);
+        $logger = $this->getLogger();
+
+        $repository = $this->getDoctrineRepository(
+            $this->getConnection(['queryBuilder' => [$queryBuilder]]),
+            $resolver,
+            $storageCache,
+            $logger
+        );
+
+        self::assertCount(1, $storageCache->__data);
+
+        $repository->clear();
+
+        self::assertCount(0, $storageCache->__data);
+    }
 
     /**
      * @param Connection            $connection
      * @param ResolverInterface     $resolver
      * @param StorageCacheInterface $storageCache
      * @param LoggerInterface       $logger
-     * @param string                $modelClass
-     * @param string                $table
      *
      * @return AbstractDoctrineRepository
      */
@@ -862,9 +822,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
         Connection $connection,
         ResolverInterface $resolver,
         StorageCacheInterface $storageCache,
-        LoggerInterface $logger,
-        string $modelClass,
-        string $table
+        LoggerInterface $logger
     ): AbstractDoctrineRepository {
         /** @var AbstractDoctrineRepository|\PHPUnit_Framework_MockObject_MockObject $repository */
         $repository = $this
@@ -877,7 +835,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
             return $this->getModel($data['id'])->setName($data['name'])->setCategory($data['category']);
         });
 
-        $repository->expects(self::any())->method('getTable')->willReturn($table);
+        $repository->expects(self::any())->method('getTable')->willReturn('models');
 
         return $repository;
     }
