@@ -75,7 +75,7 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
 
         $row = $qb->execute()->fetch(\PDO::FETCH_ASSOC);
         if (false === $row) {
-            $this->logger->warning(
+            $this->logger->notice(
                 'model: row within table {table} with id {id} not found',
                 ['table' => $table, 'id' => $id]
             );
@@ -98,14 +98,14 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
         $models = $this->findBy($criteria, $orderBy, 1, 0);
 
         if ([] === $models) {
-            $this->logger->warning(
+            $this->logger->notice(
                 'model: row within table {table} with criteria {criteria} not found',
                 [
                     'table' => $this->getTable(),
                     'criteria' => $criteria,
                     'orderBy' => $orderBy,
                     'limit' => 1,
-                    'offset' => 0
+                    'offset' => 0,
                 ]
             );
 
@@ -199,6 +199,7 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
                 unset($row[$field]);
             } elseif ($value instanceof ModelInterface) {
                 $this->persistRelatedModel($value);
+                $row[$field.'Id'] = $value->getId();
                 unset($row[$field]);
             }
         }
