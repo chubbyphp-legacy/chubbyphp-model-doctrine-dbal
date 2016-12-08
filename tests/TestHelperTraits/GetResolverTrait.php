@@ -1,6 +1,6 @@
 <?php
 
-namespace Chubbyphp\Tests\Model\Doctrine\DBAL\Repository;
+namespace Chubbyphp\Tests\Model\Doctrine\DBAL\TestHelperTraits;
 
 use Chubbyphp\Model\ModelInterface;
 use Chubbyphp\Model\ResolverInterface;

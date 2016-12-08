@@ -1,6 +1,6 @@
 <?php
 
-namespace Chubbyphp\Tests\Model\Doctrine\DBAL\Repository;
+namespace Chubbyphp\Tests\Model\Doctrine\DBAL\TestHelperTraits;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Driver\Statement;
@@ -17,20 +17,22 @@ trait GetConnectionTrait
     private function getConnection(array $stacks = []): Connection
     {
         /* @var Connection|\PHPUnit_Framework_MockObject_MockObject $connection */
-        $repository = $this
+        $connection = $this
             ->getMockBuilder(Connection::class)
             ->disableOriginalConstructor()
-            ->setMethods(['createQueryBuilder', 'insert', 'update', 'delete'])
+            ->setMethods(['createQueryBuilder', 'insert', 'update', 'delete', 'fetchAll', 'executeUpdate'])
             ->getMockForAbstractClass();
 
         $queryBuilderStack = $stacks['queryBuilder'] ?? [];
         $insertStack = $stacks['insert'] ?? [];
         $updateStack = $stacks['update'] ?? [];
         $deleteStack = $stacks['delete'] ?? [];
+        $fetchAllStack = $stacks['fetchAll'] ?? [];
+        $executeUpdateStack = $stacks['executeUpdate'] ?? [];
 
         $queryBuilderCounter = 0;
 
-        $repository
+        $connection
             ->expects(self::any())
             ->method('createQueryBuilder')
             ->willReturnCallback(function () use (&$queryBuilderStack, &$queryBuilderCounter) {
@@ -50,7 +52,7 @@ trait GetConnectionTrait
 
         $insertStackCounter = 0;
 
-        $repository
+        $connection
             ->expects(self::any())
             ->method('insert')
             ->willReturnCallback(
@@ -80,7 +82,7 @@ trait GetConnectionTrait
 
         $updateStackCounter = 0;
 
-        $repository
+        $connection
             ->expects(self::any())
             ->method('update')
             ->willReturnCallback(
@@ -112,7 +114,7 @@ trait GetConnectionTrait
 
         $deleteStackCounter = 0;
 
-        $repository
+        $connection
             ->expects(self::any())
             ->method('delete')
             ->willReturnCallback(
@@ -140,7 +142,55 @@ trait GetConnectionTrait
                 }
             );
 
-        return $repository;
+        $fetchAllCounter = 0;
+
+        $connection
+            ->expects(self::any())
+            ->method('fetchAll')
+            ->willReturnCallback(function ($sql, array $params = array(), $types = array()) use (&$fetchAllStack, &$fetchAllCounter) {
+                ++$fetchAllCounter;
+
+                $fetchAll = array_shift($fetchAllStack);
+
+                self::assertNotNull($fetchAll,
+                    sprintf(
+                        'fetchAll failed, cause there was no data within $fetchAllStack at call %d',
+                        $fetchAllCounter
+                    )
+                );
+
+                self::assertSame($fetchAll['arguments'][0], $sql);
+                self::assertSame($fetchAll['arguments'][1], $params);
+                self::assertSame($fetchAll['arguments'][2], $types);
+
+                return $fetchAll['return'];
+            });
+
+        $executeUpdateCounter = 0;
+
+        $connection
+            ->expects(self::any())
+            ->method('executeUpdate')
+            ->willReturnCallback(function ($sql, array $params = array(), $types = array()) use (&$executeUpdateStack, &$executeUpdateCounter) {
+                ++$executeUpdateCounter;
+
+                $executeUpdate = array_shift($executeUpdateStack);
+
+                self::assertNotNull($executeUpdate,
+                    sprintf(
+                        'executeUpdate failed, cause there was no data within $executeUpdateStack at call %d',
+                        $executeUpdateCounter
+                    )
+                );
+
+                self::assertSame($executeUpdate['arguments'][0], $sql);
+                self::assertSame($executeUpdate['arguments'][1], $params);
+                self::assertSame($executeUpdate['arguments'][2], $types);
+
+                return $executeUpdate['return'];
+            });
+
+        return $connection;
     }
 
     /**
