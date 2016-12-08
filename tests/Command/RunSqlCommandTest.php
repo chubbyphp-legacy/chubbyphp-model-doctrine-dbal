@@ -4,7 +4,6 @@ namespace Chubbyphp\Tests\Model\Doctrine\DBAL\Command;
 
 use Chubbyphp\Model\Doctrine\DBAL\Command\RunSqlCommand;
 use Chubbyphp\Tests\Model\Doctrine\DBAL\TestHelperTraits\GetConnectionTrait;
-use Symfony\Component\Console\Exception\RuntimeException;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputDefinition;
@@ -109,9 +108,9 @@ final class RunSqlCommandTest extends \PHPUnit_Framework_TestCase
         self::assertContains('int 1', $outputBuffer);
     }
 
-    public function testWithInvalidQuery()
+    public function testWithNullQuery()
     {
-        self::expectException(RuntimeException::class);
+        self::expectException(\RuntimeException::class);
         self::expectExceptionMessage("Argument 'SQL' is required in order to execute this command correctly.");
 
         $connection = $this->getConnection();
@@ -133,7 +132,7 @@ final class RunSqlCommandTest extends \PHPUnit_Framework_TestCase
 
     public function testWithInvalidDepth()
     {
-        self::expectException(RuntimeException::class);
+        self::expectException(\InvalidArgumentException::class);
         self::expectExceptionMessage("Option 'depth' must contains an integer value");
 
         $connection = $this->getConnection();
