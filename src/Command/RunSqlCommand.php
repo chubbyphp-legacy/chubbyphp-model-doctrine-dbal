@@ -6,6 +6,7 @@ namespace Chubbyphp\Model\Doctrine\DBAL\Command;
 
 use Doctrine\Common\Util\Debug;
 use Doctrine\DBAL\Connection;
+use Symfony\Component\Console\Exception\RuntimeException;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
@@ -57,7 +58,7 @@ final class RunSqlCommand
     private function getSql(InputInterface $input): string
     {
         if (($sql = $input->getArgument('sql')) === null) {
-            throw new \RuntimeException("Argument 'SQL' is required in order to execute this command correctly.");
+            throw new RuntimeException("Argument 'SQL' is required in order to execute this command correctly.");
         }
 
         return $sql;
@@ -73,7 +74,7 @@ final class RunSqlCommand
         $depth = $input->getOption('depth');
 
         if (!is_numeric($depth)) {
-            throw new \LogicException("Option 'depth' must contains an integer value");
+            throw new RuntimeException("Option 'depth' must contains an integer value");
         }
 
         return (int) $depth;
