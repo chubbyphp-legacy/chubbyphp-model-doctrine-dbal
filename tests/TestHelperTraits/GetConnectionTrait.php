@@ -4,8 +4,11 @@ namespace Chubbyphp\Tests\Model\Doctrine\DBAL\TestHelperTraits;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Driver\Statement;
+use Doctrine\DBAL\Platforms\AbstractPlatform;
 use Doctrine\DBAL\Query\Expression\ExpressionBuilder;
 use Doctrine\DBAL\Query\QueryBuilder;
+use Doctrine\DBAL\Schema\AbstractSchemaManager;
+use Doctrine\DBAL\Schema\Schema;
 
 trait GetConnectionTrait
 {
@@ -20,15 +23,32 @@ trait GetConnectionTrait
         $connection = $this
             ->getMockBuilder(Connection::class)
             ->disableOriginalConstructor()
-            ->setMethods(['createQueryBuilder', 'insert', 'update', 'delete', 'fetchAll', 'executeUpdate'])
+            ->setMethods([
+                'createQueryBuilder',
+                'beginTransaction',
+                'commit',
+                'insert',
+                'update',
+                'delete',
+                'fetchAll',
+                'executeUpdate',
+                'exec',
+                'getSchemaManager',
+                'getDatabasePlatform',
+            ])
             ->getMockForAbstractClass();
 
         $queryBuilderStack = $stacks['queryBuilder'] ?? [];
+        $beginTransaction = $stacks['beginTransaction'] ?? 0;
+        $commit = $stacks['commit'] ?? 0;
         $insertStack = $stacks['insert'] ?? [];
         $updateStack = $stacks['update'] ?? [];
         $deleteStack = $stacks['delete'] ?? [];
         $fetchAllStack = $stacks['fetchAll'] ?? [];
         $executeUpdateStack = $stacks['executeUpdate'] ?? [];
+        $execStack = $stacks['exec'] ?? [];
+        $schemaManager = $stacks['schemaManager'] ?? null;
+        $databasePlatform = $stacks['databasePlatform'] ?? null;
 
         $queryBuilderCounter = 0;
 
@@ -49,6 +69,14 @@ trait GetConnectionTrait
 
                 return $queryBuilder;
             });
+
+        $connection
+            ->expects(self::exactly($beginTransaction))
+            ->method('beginTransaction');
+
+        $connection
+            ->expects(self::exactly($commit))
+            ->method('commit');
 
         $insertStackCounter = 0;
 
@@ -190,6 +218,42 @@ trait GetConnectionTrait
                 return $executeUpdate['return'];
             });
 
+        $execCounter = 0;
+
+        $connection
+            ->expects(self::any())
+            ->method('exec')
+            ->willReturnCallback(function ($sql) use (&$execStack, &$execCounter) {
+                ++$execCounter;
+
+                $exec = array_shift($execStack);
+
+                self::assertNotNull($exec,
+                    sprintf(
+                        'exec failed, cause there was no data within $execStack at call %d',
+                        $execCounter
+                    )
+                );
+
+                self::assertSame($exec['arguments'][0], $sql);
+
+                return $exec['return'];
+            });
+
+        $connection
+            ->expects(self::any())
+            ->method('getSchemaManager')
+            ->willReturnCallback(function () use ($schemaManager) {
+                return $schemaManager;
+            });
+
+        $connection
+            ->expects(self::any())
+            ->method('getDatabasePlatform')
+            ->willReturnCallback(function () use ($databasePlatform) {
+                return $databasePlatform;
+            });
+
         return $connection;
     }
 
@@ -315,7 +379,7 @@ trait GetConnectionTrait
             ->getMockBuilder(ExpressionBuilder::class)
             ->disableOriginalConstructor()
             ->setMethods($comparsions)
-            ->getMockForAbstractClass();
+            ->getMock();
 
         foreach ($comparsions as $comparsion) {
             $expr
@@ -362,5 +426,101 @@ trait GetConnectionTrait
             });
 
         return $stmt;
+    }
+
+    /**
+     * @param array $stacks
+     *
+     * @return AbstractSchemaManager
+     */
+    private function getSchemaManager(array $stacks = []): AbstractSchemaManager
+    {
+        /** @var AbstractSchemaManager|\PHPUnit_Framework_MockObject_MockObject $schemaManager */
+        $schemaManager = $this
+            ->getMockBuilder(AbstractSchemaManager::class)
+            ->disableOriginalConstructor()
+            ->setMethods(['createSchema'])
+            ->getMockForAbstractClass();
+
+        $createSchemaStack = $stacks['createSchema'] ?? [];
+
+        $createSchemaStackCounter = 0;
+
+        $schemaManager
+            ->expects(self::any())
+            ->method('createSchema')
+            ->willReturnCallback(function () use (&$createSchemaStack, &$createSchemaStackCounter) {
+                ++$createSchemaStackCounter;
+
+                $createSchema = array_shift($createSchemaStack);
+
+                self::assertNotNull($createSchema,
+                    sprintf(
+                        'execute failed, cause there was no data within $createSchemaStack at call %d',
+                        $createSchemaStackCounter
+                    )
+                );
+
+                return $createSchema;
+            });
+
+        return $schemaManager;
+    }
+
+    /**
+     * @param $stacks
+     *
+     * @return Schema
+     */
+    private function getSchema(array $stacks): Schema
+    {
+        /** @var Schema|\PHPUnit_Framework_MockObject_MockObject $schema */
+        $schema = $this
+            ->getMockBuilder(Schema::class)
+            ->disableOriginalConstructor()
+            ->setMethods(['getMigrateToSql'])
+            ->getMock();
+
+        $migrateToSqlStack = $stacks['migrateToSql'] ?? [];
+
+        $migrateToSqlStackCounter = 0;
+
+        $schema
+            ->expects(self::any())
+            ->method('getMigrateToSql')
+            ->willReturnCallback(function (Schema $toSchema, AbstractPlatform $platform) use (&$migrateToSqlStack, &$migrateToSqlStackCounter) {
+                ++$migrateToSqlStackCounter;
+
+                $migrateToSql = array_shift($migrateToSqlStack);
+
+                self::assertNotNull($migrateToSql,
+                    sprintf(
+                        'execute failed, cause there was no data within $migrateToSqlStack at call %d',
+                        $migrateToSqlStackCounter
+                    )
+                );
+
+                self::assertEquals($migrateToSql['arguments'][0], $toSchema);
+                self::assertSame($migrateToSql['arguments'][1], $platform);
+
+                return $migrateToSql['return'];
+            });
+
+        return $schema;
+    }
+
+    /**
+     * @return AbstractPlatform
+     */
+    private function getPlatform(): AbstractPlatform
+    {
+        /** @var AbstractPlatform|\PHPUnit_Framework_MockObject_MockObject $platform */
+        $platform = $this
+            ->getMockBuilder(AbstractPlatform::class)
+            ->disableOriginalConstructor()
+            ->setMethods([])
+            ->getMockForAbstractClass();
+
+        return $platform;
     }
 }
