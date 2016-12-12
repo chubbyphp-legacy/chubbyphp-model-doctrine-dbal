@@ -44,6 +44,8 @@ final class CreateDatabaseCommand
 
         $name = $this->getName($parameters);
 
+        $isPath = isset($parameters['path']);
+
         // Need to get rid of _every_ occurrence of dbname from connection configuration
         unset($parameters['dbname'], $parameters['path'], $parameters['url']);
 
@@ -51,7 +53,7 @@ final class CreateDatabaseCommand
         $shouldNotCreateDatabase = in_array($name, $tmpConnection->getSchemaManager()->listDatabases());
 
         // Only quote if we don't have a path
-        if (!isset($parameters['path'])) {
+        if (!$isPath) {
             $name = $tmpConnection->getDatabasePlatform()->quoteSingleIdentifier($name);
         }
 

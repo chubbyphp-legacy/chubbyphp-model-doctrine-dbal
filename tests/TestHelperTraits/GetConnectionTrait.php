@@ -35,6 +35,7 @@ trait GetConnectionTrait
                 'exec',
                 'getSchemaManager',
                 'getDatabasePlatform',
+                'getParams'
             ])
             ->getMockForAbstractClass();
 
@@ -49,6 +50,7 @@ trait GetConnectionTrait
         $execStack = $stacks['exec'] ?? [];
         $schemaManager = $stacks['schemaManager'] ?? null;
         $databasePlatform = $stacks['databasePlatform'] ?? null;
+        $params = $stacks['params'] ?? [];
 
         $queryBuilderCounter = 0;
 
@@ -254,6 +256,13 @@ trait GetConnectionTrait
                 return $databasePlatform;
             });
 
+        $connection
+            ->expects(self::any())
+            ->method('getParams')
+            ->willReturnCallback(function () use ($params) {
+                return $params;
+            });
+
         return $connection;
     }
 
@@ -439,10 +448,12 @@ trait GetConnectionTrait
         $schemaManager = $this
             ->getMockBuilder(AbstractSchemaManager::class)
             ->disableOriginalConstructor()
-            ->setMethods(['createSchema'])
+            ->setMethods(['createSchema', 'createDatabase', 'listDatabases'])
             ->getMockForAbstractClass();
 
         $createSchemaStack = $stacks['createSchema'] ?? [];
+        $listDatabases = $stacks['listDatabases'] ?? [];
+        $createDatabaseStack = $stacks['createDatabase'] ?? [];
 
         $createSchemaStackCounter = 0;
 
@@ -462,6 +473,37 @@ trait GetConnectionTrait
                 );
 
                 return $createSchema;
+            });
+
+        $createDatabaseStackCounter = 0;
+
+        $schemaManager
+            ->expects(self::any())
+            ->method('createDatabase')
+            ->willReturnCallback(function (string $database) use (&$createDatabaseStack, &$createDatabaseStackCounter) {
+                ++$createDatabaseStackCounter;
+
+                $createDatabase = array_shift($createDatabaseStack);
+
+                self::assertNotNull($createDatabase,
+                    sprintf(
+                        'execute failed, cause there was no data within $createDatabaseStack at call %d',
+                        $createDatabaseStackCounter
+                    )
+                );
+
+                self::assertSame($createDatabase['arguments'][0], $database);
+
+                if (isset($createDatabase['exception'])) {
+                    throw $createDatabase['exception'];
+                }
+            });
+
+        $schemaManager
+            ->expects(self::any())
+            ->method('listDatabases')
+            ->willReturnCallback(function () use ($listDatabases) {
+                return $listDatabases;
             });
 
         return $schemaManager;
@@ -518,8 +560,15 @@ trait GetConnectionTrait
         $platform = $this
             ->getMockBuilder(AbstractPlatform::class)
             ->disableOriginalConstructor()
-            ->setMethods([])
+            ->setMethods(['quoteSingleIdentifier'])
             ->getMockForAbstractClass();
+
+        $platform
+            ->expects(self::any())
+            ->method('quoteSingleIdentifier')
+            ->willReturnCallback(function ($str) {
+                return $str;
+            });
 
         return $platform;
     }
