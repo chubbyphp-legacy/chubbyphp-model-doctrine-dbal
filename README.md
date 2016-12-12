@@ -33,15 +33,13 @@ Through [Composer](http://getcomposer.org) as [chubbyphp/chubbyphp-model-doctrin
 
 use Chubbyphp\Lazy\LazyCommand;
 use Chubbyphp\Model\Doctrine\DBAL\Command\CreateDatabaseCommand;
-use Slim\Container;
+use Pimple\Container;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Input\ArgvInput;
 
 $application = new Application();
 
 $input = new ArgvInput();
-
-$container = new Container();
 
 $container[CreateDatabaseCommand::class] = function () use ($container) {
     return new CreateDatabaseCommand($connection);
@@ -65,7 +63,7 @@ $console->run($input);
 
 use Chubbyphp\Lazy\LazyCommand;
 use Chubbyphp\Model\Doctrine\DBAL\Command\RunSqlCommand;
-use Slim\Container;
+use Interop\Container\ContainerInterface;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Input\ArgvInput;
 use Symfony\Component\Console\Input\InputArgument;
@@ -74,8 +72,6 @@ use Symfony\Component\Console\Input\InputOption;
 $application = new Application();
 
 $input = new ArgvInput();
-
-$container = new Container();
 
 $container[RunSqlCommand::class] = function () use ($container) {
     return new RunSqlCommand($connection);
@@ -103,7 +99,7 @@ $console->run($input);
 
 use Chubbyphp\Lazy\LazyCommand;
 use Chubbyphp\Model\Doctrine\DBAL\Command\SchemaUpdateCommand;
-use Slim\Container;
+use Interop\Container\ContainerInterface;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Input\ArgvInput;
 use Symfony\Component\Console\Input\InputArgument;
@@ -112,8 +108,6 @@ use Symfony\Component\Console\Input\InputOption;
 $application = new Application();
 
 $input = new ArgvInput();
-
-$container = new Container();
 
 $container[SchemaUpdateCommand::class] = function () use ($container) {
     return new SchemaUpdateCommand($connection, '/path/to/schema/file');
