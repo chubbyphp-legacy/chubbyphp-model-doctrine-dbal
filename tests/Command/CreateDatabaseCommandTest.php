@@ -50,9 +50,9 @@ EOT;
         $connection = $this->getConnection([
             'params' => [
                 'master' => [
-                    'path' => '/path/to/database'
-                ]
-            ]
+                    'path' => '/path/to/database',
+                ],
+            ],
         ]);
 
         $tmpConnection = $this->getConnection([
@@ -61,11 +61,11 @@ EOT;
                 'createDatabase' => [
                     [
                         'arguments' => [
-                            '/path/to/database'
-                        ]
-                    ]
-                ]
-            ])
+                            '/path/to/database',
+                        ],
+                    ],
+                ],
+            ]),
         ]);
 
         DriverManager::setConnection($tmpConnection);
@@ -87,9 +87,9 @@ EOT;
         $connection = $this->getConnection([
             'params' => [
                 'master' => [
-                    'dbname' => 'database'
-                ]
-            ]
+                    'dbname' => 'database',
+                ],
+            ],
         ]);
 
         $tmpConnection = $this->getConnection([
@@ -98,10 +98,10 @@ EOT;
                 'createDatabase' => [
                     [
                         'arguments' => [
-                            'database'
-                        ]
-                    ]
-                ]
+                            'database',
+                        ],
+                    ],
+                ],
             ]),
             'databasePlatform' => $this->getPlatform(),
         ]);
@@ -125,9 +125,9 @@ EOT;
         $connection = $this->getConnection([
             'params' => [
                 'master' => [
-                    'dbname' => 'database'
-                ]
-            ]
+                    'dbname' => 'database',
+                ],
+            ],
         ]);
 
         $tmpConnection = $this->getConnection([
@@ -136,11 +136,11 @@ EOT;
                 'createDatabase' => [
                     [
                         'arguments' => [
-                            'database'
+                            'database',
                         ],
-                        'exception' => new \RuntimeException('Failed to create database')
-                    ]
-                ]
+                        'exception' => new \RuntimeException('Failed to create database'),
+                    ],
+                ],
             ]),
             'databasePlatform' => $this->getPlatform(),
         ]);
@@ -164,23 +164,23 @@ EOT;
         $connection = $this->getConnection([
             'params' => [
                 'master' => [
-                    'dbname' => 'database'
-                ]
-            ]
+                    'dbname' => 'database',
+                ],
+            ],
         ]);
 
         $tmpConnection = $this->getConnection([
             'schemaManager' => $this->getSchemaManager([
                 'listDatabases' => [
-                    'database'
+                    'database',
                 ],
                 'createDatabase' => [
                     [
                         'arguments' => [
-                            'database'
-                        ]
-                    ]
-                ]
+                            'database',
+                        ],
+                    ],
+                ],
             ]),
             'databasePlatform' => $this->getPlatform(),
         ]);
@@ -206,8 +206,8 @@ EOT;
 
         $connection = $this->getConnection([
             'params' => [
-                'master' => []
-            ]
+                'master' => [],
+            ],
         ]);
 
         $input = new ArrayInput([]);

@@ -35,7 +35,7 @@ trait GetConnectionTrait
                 'exec',
                 'getSchemaManager',
                 'getDatabasePlatform',
-                'getParams'
+                'getParams',
             ])
             ->getMockForAbstractClass();
 
