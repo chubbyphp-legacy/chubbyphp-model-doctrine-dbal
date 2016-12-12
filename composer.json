@@ -19,6 +19,10 @@
         "phpunit/phpunit": "~5.5",
         "symfony/console": "~2.7|~3.0"
     },
+    "suggest": {
+        "chubbyphp/lazy": "~1.0",
+        "symfony/console": "~2.7|~3.0"
+    },
     "provide": {
         "chubbyphp/chubbyphp-model-implementation": "~1.0@dev"
     },
