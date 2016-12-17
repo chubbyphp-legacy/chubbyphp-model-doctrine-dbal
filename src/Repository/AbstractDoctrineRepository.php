@@ -6,6 +6,7 @@ namespace Chubbyphp\Model\Doctrine\DBAL\Repository;
 
 use Chubbyphp\Model\Collection\ModelCollectionInterface;
 use Chubbyphp\Model\ModelInterface;
+use Chubbyphp\Model\Reference\ModelReferenceInterface;
 use Chubbyphp\Model\RepositoryInterface;
 use Chubbyphp\Model\ResolverInterface;
 use Chubbyphp\Model\StorageCache\NullStorageCache;
@@ -60,8 +61,12 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
      *
      * @return ModelInterface|null
      */
-    public function find(string $id)
+    public function find(string $id = null)
     {
+        if (null === $id) {
+            return null;
+        }
+
         $table = $this->getTable();
 
         $this->logger->info('model: find row within table {table} with id {id}', ['table' => $table, 'id' => $id]);
@@ -197,9 +202,8 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
             if ($value instanceof ModelCollectionInterface) {
                 $modelCollections[] = $value;
                 unset($row[$field]);
-            } elseif ($value instanceof ModelInterface) {
-                $this->persistRelatedModel($value);
-                $row[$field.'Id'] = $value->getId();
+            } elseif ($value instanceof ModelReferenceInterface) {
+                $row[$field.'Id'] = $this->persistReference($value);
                 unset($row[$field]);
             }
         }
@@ -211,7 +215,7 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
         }
 
         foreach ($modelCollections as $modelCollection) {
-            $this->persistRelatedModels($modelCollection);
+            $this->persistCollection($modelCollection);
         }
 
         $this->storageCache->set($id, $row);
@@ -238,8 +242,10 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
         foreach ($row as $field => $value) {
             if ($value instanceof ModelCollectionInterface) {
                 $this->removeRelatedModels($value);
-            } elseif ($value instanceof ModelInterface) {
-                $this->removeRelatedModel($value);
+            } elseif ($value instanceof ModelReferenceInterface) {
+                if (null !== $initialModel = $value->getInitialModel()) {
+                    $this->removeRelatedModel($initialModel);
+                }
             }
         }
 
@@ -293,9 +299,31 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
     }
 
     /**
+     * @param ModelReferenceInterface $reference
+     * @return null|string
+     */
+    private function persistReference(ModelReferenceInterface $reference)
+    {
+        $initialModel = $reference->getInitialModel();
+        $model = $reference->getModel();
+
+        if (null !== $initialModel && (null === $model || $model->getId() !== $initialModel->getId())) {
+            $this->removeRelatedModel($initialModel);
+        }
+
+        if (null !== $model) {
+            $this->persistRelatedModel($model);
+
+            return $model->getId();
+        }
+
+        return null;
+    }
+
+    /**
      * @param ModelCollectionInterface $modelCollection
      */
-    private function persistRelatedModels(ModelCollectionInterface $modelCollection)
+    private function persistCollection(ModelCollectionInterface $modelCollection)
     {
         $initialModels = $modelCollection->getInitialModels();
         $models = $modelCollection->getModels();
