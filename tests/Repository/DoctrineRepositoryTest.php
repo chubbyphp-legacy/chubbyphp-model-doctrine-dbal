@@ -790,7 +790,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
         /** @var MyModelRepository $repository */
         $repository = $container[MyModelRepository::class];
 
-        $model = (new MyModel('id1'))->setName('name1')->setCategory('category1');
+        $model = MyModel::create('id1')->setName('name1')->setCategory('category1');
 
         $repository->persist($model);
 
@@ -977,7 +977,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
         /** @var MyModelRepository $repository */
         $repository = $container[MyModelRepository::class];
 
-        $model = (new MyModel('id1'))->setName('name1')->setCategory('category1');
+        $model = MyModel::create('id1')->setName('name1')->setCategory('category1');
 
         $repository->remove($model);
 
