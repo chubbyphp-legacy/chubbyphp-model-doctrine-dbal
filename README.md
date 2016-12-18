@@ -130,6 +130,10 @@ $console->add(
 $console->run($input);
 ```
 
+### Model
+
+[Model samples][2]
+
 ### Repository
 
 #### MyModelRepository
@@ -230,6 +234,7 @@ final class MyEmbeddedRepository extends AbstractDoctrineRepository
 ```
 
 [1]: https://packagist.org/packages/chubbyphp/chubbyphp-model-doctrine-dbal
+[2]: https://github.com/chubbyphp/chubbyphp-model#model
 
 ## Copyright
 
