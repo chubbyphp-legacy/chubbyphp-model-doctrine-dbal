@@ -2,26 +2,17 @@
 
 namespace Chubbyphp\Tests\Model\Doctrine\DBAL\Repository;
 
-use Chubbyphp\Model\Collection\ModelCollection;
 use Chubbyphp\Model\ModelInterface;
 use Chubbyphp\Model\Resolver;
-use Chubbyphp\Model\StorageCache\ArrayStorageCache;
-use Chubbyphp\Model\StorageCache\NullStorageCache;
-use Chubbyphp\Model\StorageCache\StorageCacheInterface;
-use Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository;
-use Chubbyphp\Model\ResolverInterface;
 use Chubbyphp\Tests\Model\Doctrine\DBAL\TestHelperTraits\GetConnectionTrait;
 use Chubbyphp\Tests\Model\Doctrine\DBAL\TestHelperTraits\GetLoggerTrait;
-use Chubbyphp\Tests\Model\Doctrine\DBAL\TestHelperTraits\GetResolverTrait;
 use Chubbyphp\Tests\Model\Doctrine\DBAL\TestHelperTraits\GetStorageCacheTrait;
-use Doctrine\DBAL\Connection;
 use Interop\Container\ContainerInterface;
 use MyProject\Model\MyEmbeddedModel;
 use MyProject\Model\MyModel;
 use MyProject\Repository\MyEmbeddedRepository;
 use MyProject\Repository\MyModelRepository;
 use Pimple\Container;
-use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
 
 final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
@@ -36,23 +27,25 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
      */
     public function testFindWithNullId()
     {
-        $logger = $this->getLogger();
+        $connection = $this->getConnection();
 
         $storageCacheMyModel = $this->getStorageCache();
         $storageCacheMyEmbeddedModel = $this->getStorageCache();
 
+        $logger = $this->getLogger();
+
         $container = $this->getContainer(
-            function (Resolver $resolver) use ($storageCacheMyModel, $logger) {
+            function (Resolver $resolver) use ($connection, $storageCacheMyModel, $logger) {
                 return new MyModelRepository(
-                    $this->getConnection(),
+                    $connection,
                     $resolver,
                     $storageCacheMyModel,
                     $logger
                 );
             },
-            function (Resolver $resolver) use ($storageCacheMyEmbeddedModel, $logger) {
+            function (Resolver $resolver) use ($connection, $storageCacheMyEmbeddedModel, $logger) {
                 return new MyEmbeddedRepository(
-                    $this->getConnection(),
+                    $connection,
                     $resolver,
                     $storageCacheMyEmbeddedModel,
                     $logger
@@ -79,23 +72,25 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
             'oneToOneId' => null
         ];
 
-        $logger = $this->getLogger();
+        $connection = $this->getConnection();
 
         $storageCacheMyModel = $this->getStorageCache([$modelEntry]);
         $storageCacheMyEmbeddedModel = $this->getStorageCache();
 
+        $logger = $this->getLogger();
+
         $container = $this->getContainer(
-            function (Resolver $resolver) use ($storageCacheMyModel, $logger) {
+            function (Resolver $resolver) use ($connection, $storageCacheMyModel, $logger) {
                 return new MyModelRepository(
-                    $this->getConnection(),
+                    $connection,
                     $resolver,
                     $storageCacheMyModel,
                     $logger
                 );
             },
-            function (Resolver $resolver) use ($storageCacheMyEmbeddedModel, $logger) {
+            function (Resolver $resolver) use ($connection, $storageCacheMyEmbeddedModel, $logger) {
                 return new MyEmbeddedRepository(
-                    $this->getConnection(),
+                    $connection,
                     $resolver,
                     $storageCacheMyEmbeddedModel,
                     $logger
@@ -137,25 +132,27 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
             'oneToOneId' => null
         ];
 
-        $logger = $this->getLogger();
+        $myModelQueryBuilder = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, $modelEntry)]);
+
+        $connection = $this->getConnection(['queryBuilder' => [$myModelQueryBuilder]]);
 
         $storageCacheMyModel = $this->getStorageCache();
         $storageCacheMyEmbeddedModel = $this->getStorageCache();
 
-        $myModelQueryBuilder = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, $modelEntry)]);
+        $logger = $this->getLogger();
 
         $container = $this->getContainer(
-            function (Resolver $resolver) use ($storageCacheMyModel, $logger, $myModelQueryBuilder) {
+            function (Resolver $resolver) use ($connection, $storageCacheMyModel, $logger) {
                 return new MyModelRepository(
-                    $this->getConnection(['queryBuilder' => [$myModelQueryBuilder]]),
+                    $connection,
                     $resolver,
                     $storageCacheMyModel,
                     $logger
                 );
             },
-            function (Resolver $resolver) use ($storageCacheMyEmbeddedModel, $logger) {
+            function (Resolver $resolver) use ($connection, $storageCacheMyEmbeddedModel, $logger) {
                 return new MyEmbeddedRepository(
-                    $this->getConnection(),
+                    $connection,
                     $resolver,
                     $storageCacheMyEmbeddedModel,
                     $logger
@@ -226,25 +223,27 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
      */
     public function testFindNotFound()
     {
-        $logger = $this->getLogger();
+        $myModelQueryBuilder = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, false)]);
+
+        $connection = $this->getConnection(['queryBuilder' => [$myModelQueryBuilder]]);
 
         $storageCacheMyModel = $this->getStorageCache();
         $storageCacheMyEmbeddedModel = $this->getStorageCache();
 
-        $myModelQueryBuilder = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, false),]);
+        $logger = $this->getLogger();
 
         $container = $this->getContainer(
-            function (Resolver $resolver) use ($storageCacheMyModel, $logger, $myModelQueryBuilder) {
+            function (Resolver $resolver) use ($connection, $storageCacheMyModel, $logger) {
                 return new MyModelRepository(
-                    $this->getConnection(['queryBuilder' => [$myModelQueryBuilder]]),
+                    $connection,
                     $resolver,
                     $storageCacheMyModel,
                     $logger
                 );
             },
-            function (Resolver $resolver) use ($storageCacheMyEmbeddedModel, $logger) {
+            function (Resolver $resolver) use ($connection, $storageCacheMyEmbeddedModel, $logger) {
                 return new MyEmbeddedRepository(
-                    $this->getConnection(),
+                    $connection,
                     $resolver,
                     $storageCacheMyEmbeddedModel,
                     $logger
@@ -318,25 +317,27 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
             ],
         ];
 
-        $logger = $this->getLogger();
+        $myModelQueryBuilder = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, $modelEntries)]);
+
+        $connection = $this->getConnection(['queryBuilder' => [$myModelQueryBuilder]]);
 
         $storageCacheMyModel = $this->getStorageCache();
         $storageCacheMyEmbeddedModel = $this->getStorageCache();
 
-        $myModelQueryBuilder = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, $modelEntries)]);
+        $logger = $this->getLogger();
 
         $container = $this->getContainer(
-            function (Resolver $resolver) use ($storageCacheMyModel, $logger, $myModelQueryBuilder) {
+            function (Resolver $resolver) use ($connection, $storageCacheMyModel, $logger) {
                 return new MyModelRepository(
-                    $this->getConnection(['queryBuilder' => [$myModelQueryBuilder]]),
+                    $connection,
                     $resolver,
                     $storageCacheMyModel,
                     $logger
                 );
             },
-            function (Resolver $resolver) use ($storageCacheMyEmbeddedModel, $logger) {
+            function (Resolver $resolver) use ($connection, $storageCacheMyEmbeddedModel, $logger) {
                 return new MyEmbeddedRepository(
-                    $this->getConnection(),
+                    $connection,
                     $resolver,
                     $storageCacheMyEmbeddedModel,
                     $logger
@@ -357,53 +358,53 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
         self::assertSame($modelEntries[0]['category'], $model->getCategory());
 
         self::assertEquals(
-            array(
-                'select' => array(
-                        0 => array(
-                                0 => '*',
-                            ),
-                    ),
-                'from' => array(
-                        0 => array(
-                                0 => 'mymodels',
-                                1 => null,
-                            ),
-                    ),
-                'setFirstResult' => array(
-                        0 => array(
-                                0 => 0,
-                            ),
-                    ),
-                'setMaxResults' => array(
-                        0 => array(
-                                0 => 1,
-                            ),
-                    ),
-                'andWhere' => array(
-                        0 => array(
-                                0 => array(
-                                        'method' => 'eq',
-                                        'arguments' => array(
-                                                0 => 'category',
-                                                1 => ':category',
-                                            ),
-                                    ),
-                            ),
-                    ),
-                'setParameter' => array(
-                        0 => array(
-                                0 => 'category',
-                                1 => 'category1',
-                                2 => null,
-                            ),
-                    ),
-                'addOrderBy' => array(
-                        0 => array(
-                                0 => 'name',
-                                1 => 'ASC',
-                            ),
-                    ),
-            ),
+            [
+                'select' => [
+                    [
+                        '*',
+                    ],
+                ],
+                'from' => [
+                    [
+                        'mymodels',
+                        null,
+                    ],
+                ],
+                'setFirstResult' => [
+                    [
+                        0,
+                    ],
+                ],
+                'setMaxResults' => [
+                    [
+                        1,
+                    ],
+                ],
+                'andWhere' => [
+                    [
+                        [
+                            'method' => 'eq',
+                            'arguments' => [
+                                'category',
+                                ':category',
+                            ],
+                        ],
+                    ],
+                ],
+                'setParameter' => [
+                    [
+                        'category',
+                        'category1',
+                        null,
+                    ],
+                ],
+                'addOrderBy' => [
+                    [
+                        'name',
+                        'ASC',
+                    ],
+                ],
+            ],
             $myModelQueryBuilder->__calls
         );
 
@@ -429,25 +430,27 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
      */
     public function testFindOneByNotFound()
     {
-        $logger = $this->getLogger();
+        $myModelQueryBuilder = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, [])]);
+
+        $connection = $this->getConnection(['queryBuilder' => [$myModelQueryBuilder]]);
 
         $storageCacheMyModel = $this->getStorageCache();
         $storageCacheMyEmbeddedModel = $this->getStorageCache();
 
-        $myModelQueryBuilder = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, [])]);
+        $logger = $this->getLogger();
 
         $container = $this->getContainer(
-            function (Resolver $resolver) use ($storageCacheMyModel, $logger, $myModelQueryBuilder) {
+            function (Resolver $resolver) use ($connection, $storageCacheMyModel, $logger) {
                 return new MyModelRepository(
-                    $this->getConnection(['queryBuilder' => [$myModelQueryBuilder]]),
+                    $connection,
                     $resolver,
                     $storageCacheMyModel,
                     $logger
                 );
             },
-            function (Resolver $resolver) use ($storageCacheMyEmbeddedModel, $logger) {
+            function (Resolver $resolver) use ($connection, $storageCacheMyEmbeddedModel, $logger) {
                 return new MyEmbeddedRepository(
-                    $this->getConnection(),
+                    $connection,
                     $resolver,
                     $storageCacheMyEmbeddedModel,
                     $logger
@@ -461,53 +464,53 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
         self::assertNull($repository->findOneBy(['category' => 'category1'], ['name' => 'ASC']));
 
         self::assertEquals(
-            array(
-                'select' => array(
-                        0 => array(
-                                0 => '*',
-                            ),
-                    ),
-                'from' => array(
-                        0 => array(
-                                0 => 'mymodels',
-                                1 => null,
-                            ),
-                    ),
-                'setFirstResult' => array(
-                        0 => array(
-                                0 => 0,
-                            ),
-                    ),
-                'setMaxResults' => array(
-                        0 => array(
-                                0 => 1,
-                            ),
-                    ),
-                'andWhere' => array(
-                        0 => array(
-                                0 => array(
-                                        'method' => 'eq',
-                                        'arguments' => array(
-                                                0 => 'category',
-                                                1 => ':category',
-                                            ),
-                                    ),
-                            ),
-                    ),
-                'setParameter' => array(
-                        0 => array(
-                                0 => 'category',
-                                1 => 'category1',
-                                2 => null,
-                            ),
-                    ),
-                'addOrderBy' => array(
-                        0 => array(
-                                0 => 'name',
-                                1 => 'ASC',
-                            ),
-                    ),
-            ),
+            [
+                'select' => [
+                    [
+                        '*',
+                    ],
+                ],
+                'from' => [
+                    [
+                        'mymodels',
+                        null,
+                    ],
+                ],
+                'setFirstResult' => [
+                    [
+                        0,
+                    ],
+                ],
+                'setMaxResults' => [
+                    [
+                        1,
+                    ],
+                ],
+                'andWhere' => [
+                    [
+                        [
+                            'method' => 'eq',
+                            'arguments' => [
+                                'category',
+                                ':category',
+                            ],
+                        ],
+                    ],
+                ],
+                'setParameter' => [
+                    [
+                        'category',
+                        'category1',
+                        null,
+                    ],
+                ],
+                'addOrderBy' => [
+                    [
+                        'name',
+                        'ASC',
+                    ],
+                ],
+            ],
             $myModelQueryBuilder->__calls
         );
 
@@ -551,25 +554,27 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
             ],
         ];
 
-        $logger = $this->getLogger();
+        $myModelQueryBuilder = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, $modelEntries)]);
+
+        $connection = $this->getConnection(['queryBuilder' => [$myModelQueryBuilder]]);
 
         $storageCacheMyModel = $this->getStorageCache();
         $storageCacheMyEmbeddedModel = $this->getStorageCache();
 
-        $myModelQueryBuilder = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, $modelEntries)]);
+        $logger = $this->getLogger();
 
         $container = $this->getContainer(
-            function (Resolver $resolver) use ($storageCacheMyModel, $logger, $myModelQueryBuilder) {
+            function (Resolver $resolver) use ($connection, $storageCacheMyModel, $logger) {
                 return new MyModelRepository(
-                    $this->getConnection(['queryBuilder' => [$myModelQueryBuilder]]),
+                    $connection,
                     $resolver,
                     $storageCacheMyModel,
                     $logger
                 );
             },
-            function (Resolver $resolver) use ($storageCacheMyEmbeddedModel, $logger) {
+            function (Resolver $resolver) use ($connection, $storageCacheMyEmbeddedModel, $logger) {
                 return new MyEmbeddedRepository(
-                    $this->getConnection(),
+                    $connection,
                     $resolver,
                     $storageCacheMyEmbeddedModel,
                     $logger
@@ -592,53 +597,53 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
         self::assertSame($modelEntries[0]['category'], $model->getCategory());
 
         self::assertEquals(
-            array(
-                'select' => array(
-                        0 => array(
-                                0 => '*',
-                            ),
-                    ),
-                'from' => array(
-                        0 => array(
-                                0 => 'mymodels',
-                                1 => null,
-                            ),
-                    ),
-                'setFirstResult' => array(
-                        0 => array(
-                                0 => null,
-                            ),
-                    ),
-                'setMaxResults' => array(
-                        0 => array(
-                                0 => null,
-                            ),
-                    ),
-                'andWhere' => array(
-                        0 => array(
-                                0 => array(
-                                        'method' => 'eq',
-                                        'arguments' => array(
-                                                0 => 'category',
-                                                1 => ':category',
-                                            ),
-                                    ),
-                            ),
-                    ),
-                'setParameter' => array(
-                        0 => array(
-                                0 => 'category',
-                                1 => 'category1',
-                                2 => null,
-                            ),
-                    ),
-                'addOrderBy' => array(
-                        0 => array(
-                                0 => 'name',
-                                1 => 'ASC',
-                            ),
-                    ),
-            ),
+            [
+                'select' => [
+                    [
+                        '*',
+                    ],
+                ],
+                'from' => [
+                    [
+                        'mymodels',
+                        null,
+                    ],
+                ],
+                'setFirstResult' => [
+                    [
+                        null,
+                    ],
+                ],
+                'setMaxResults' => [
+                    [
+                        null,
+                    ],
+                ],
+                'andWhere' => [
+                    [
+                        [
+                            'method' => 'eq',
+                            'arguments' => [
+                                'category',
+                                ':category',
+                            ],
+                        ],
+                    ],
+                ],
+                'setParameter' => [
+                    [
+                        'category',
+                        'category1',
+                        null,
+                    ],
+                ],
+                'addOrderBy' => [
+                    [
+                        'name',
+                        'ASC',
+                    ],
+                ],
+            ],
             $myModelQueryBuilder->__calls
         );
 
@@ -666,25 +671,27 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
      */
     public function testFindByNotFound()
     {
-        $logger = $this->getLogger();
+        $myModelQueryBuilder = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, [])]);
+
+        $connection = $this->getConnection(['queryBuilder' => [$myModelQueryBuilder]]);
 
         $storageCacheMyModel = $this->getStorageCache();
         $storageCacheMyEmbeddedModel = $this->getStorageCache();
 
-        $myModelQueryBuilder = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, [])]);
+        $logger = $this->getLogger();
 
         $container = $this->getContainer(
-            function (Resolver $resolver) use ($storageCacheMyModel, $logger, $myModelQueryBuilder) {
+            function (Resolver $resolver) use ($connection, $storageCacheMyModel, $logger) {
                 return new MyModelRepository(
-                    $this->getConnection(['queryBuilder' => [$myModelQueryBuilder]]),
+                    $connection,
                     $resolver,
                     $storageCacheMyModel,
                     $logger
                 );
             },
-            function (Resolver $resolver) use ($storageCacheMyEmbeddedModel, $logger) {
+            function (Resolver $resolver) use ($connection, $storageCacheMyEmbeddedModel, $logger) {
                 return new MyEmbeddedRepository(
-                    $this->getConnection(),
+                    $connection,
                     $resolver,
                     $storageCacheMyEmbeddedModel,
                     $logger
@@ -698,51 +705,52 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
         self::assertSame([], $repository->findBy(['category' => 'category1']));
 
         self::assertEquals(
-            array(
-                'select' => array(
-                        0 => array(
-                                0 => '*',
-                            ),
-                    ),
-                'from' => array(
-                        0 => array(
-                                0 => 'mymodels',
-                                1 => null,
-                            ),
-                    ),
-                'setFirstResult' => array(
-                        0 => array(
-                                0 => null,
-                            ),
-                    ),
-                'setMaxResults' => array(
-                        0 => array(
-                                0 => null,
-                            ),
-                    ),
-                'andWhere' => array(
-                        0 => array(
-                                0 => array(
-                                        'method' => 'eq',
-                                        'arguments' => array(
-                                                0 => 'category',
-                                                1 => ':category',
-                                            ),
-                                    ),
-                            ),
-                    ),
-                'setParameter' => array(
-                        0 => array(
-                                0 => 'category',
-                                1 => 'category1',
-                                2 => null,
-                            ),
-                    ),
-            ),
+            [
+                'select' => [
+                    [
+                        '*',
+                    ],
+                ],
+                'from' => [
+                    [
+                        'mymodels',
+                        null,
+                    ],
+                ],
+                'setFirstResult' => [
+                    [
+                        null,
+                    ],
+                ],
+                'setMaxResults' => [
+                    [
+                        null,
+                    ],
+                ],
+                'andWhere' => [
+                    [
+                        [
+                            'method' => 'eq',
+                            'arguments' => [
+                                'category',
+                                ':category',
+                            ],
+                        ],
+                    ],
+                ],
+                'setParameter' => [
+                    [
+                        'category',
+                        'category1',
+                        null,
+                    ],
+                ],
+            ],
             $myModelQueryBuilder->__calls
         );
 
         self::assertCount(0, $storageCacheMyModel->__data);
+        self::assertCount(0, $storageCacheMyEmbeddedModel->__data);
 
         self::assertCount(1, $logger->__logs);
         self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
@@ -769,58 +777,54 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
         $storageCacheMyModel = $this->getStorageCache();
         $storageCacheMyEmbeddedModel = $this->getStorageCache();
 
-        $myModelQueryBuilder = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, false)]);
         $myEmbeddedModelQueryBuilder = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, false)]);
+        $myModelQueryBuilder = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, false)]);
+
+        $connection = $this->getConnection([
+            'queryBuilder' => [$myEmbeddedModelQueryBuilder, $myModelQueryBuilder],
+            'beginTransaction' => 2,
+            'commit' => 2,
+            'insert' => [
+                [
+                    'arguments' => [
+                        'tableExpression' => 'myembeddedmodels',
+                        'data' => [
+                            'id' => 'id1',
+                            'modelId' => 'id1',
+                            'name' => 'name1'
+                        ],
+                        'types' => [],
+                    ],
+                    'return' => 1,
+                ],
+                [
+                    'arguments' => [
+                        'tableExpression' => 'mymodels',
+                        'data' => [
+                            'id' => 'id1',
+                            'name' => 'name1',
+                            'category' => 'category1',
+                            'oneToOneId' => 'id1'
+                        ],
+                        'types' => [],
+                    ],
+                    'return' => 1,
+                ],
+            ],
+        ]);
 
         $container = $this->getContainer(
-            function (Resolver $resolver) use ($storageCacheMyModel, $logger, $myModelQueryBuilder) {
+            function (Resolver $resolver) use ($connection, $storageCacheMyModel, $logger) {
                 return new MyModelRepository(
-                    $this->getConnection(
-                        [
-                            'queryBuilder' => [$myModelQueryBuilder],
-                            'insert' => [
-                                [
-                                    'arguments' => [
-                                        'tableExpression' => 'mymodels',
-                                        'data' => [
-                                            'id' => 'id1',
-                                            'name' => 'name1',
-                                            'category' => 'category1',
-                                            'oneToOneId' => 'id1'
-                                        ],
-                                        'types' => [],
-                                    ],
-                                    'return' => 1,
-                                ],
-                            ],
-                        ]
-                    ),
+                    $connection,
                     $resolver,
                     $storageCacheMyModel,
                     $logger
                 );
             },
-            function (Resolver $resolver) use ($storageCacheMyEmbeddedModel, $logger, $myEmbeddedModelQueryBuilder) {
+            function (Resolver $resolver) use ($connection, $storageCacheMyEmbeddedModel, $logger) {
                 return new MyEmbeddedRepository(
-                    $this->getConnection(
-                        [
-                            'queryBuilder' => [$myEmbeddedModelQueryBuilder],
-                            'insert' => [
-                                [
-                                    'arguments' => [
-                                        'tableExpression' => 'myembeddedmodels',
-                                        'data' => [
-                                            'id' => 'id1',
-                                            'modelId' => 'id1',
-                                            'name' => 'name1'
-                                        ],
-                                        'types' => [],
-                                    ],
-                                    'return' => 1,
-                                ],
-                            ],
-                        ]
-                    ),
+                    $connection,
                     $resolver,
                     $storageCacheMyEmbeddedModel,
                     $logger
@@ -836,6 +840,76 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
         );
 
         $repository->persist($model);
+
+        self::assertEquals(
+            [
+                'select' => [
+                    [
+                        '*',
+                    ],
+                ],
+                'from' => [
+                    [
+                        'myembeddedmodels',
+                        null,
+                    ],
+                ],
+                'where' => [
+                    [
+                        [
+                            'method' => 'eq',
+                            'arguments' => [
+                                'id',
+                                ':id',
+                            ],
+                        ],
+                    ],
+                ],
+                'setParameter' => [
+                    [
+                        'id',
+                        'id1',
+                        null,
+                    ],
+                ],
+            ],
+            $myEmbeddedModelQueryBuilder->__calls
+        );
+
+        self::assertEquals(
+            [
+                'select' => [
+                    [
+                        '*',
+                    ],
+                ],
+                'from' => [
+                    [
+                        'mymodels',
+                        null,
+                    ],
+                ],
+                'where' => [
+                    [
+                        [
+                            'method' => 'eq',
+                            'arguments' => [
+                                'id',
+                                ':id',
+                            ],
+                        ],
+                    ],
+                ],
+                'setParameter' => [
+                    [
+                        'id',
+                        'id1',
+                        null,
+                    ],
+                ],
+            ],
+            $myModelQueryBuilder->__calls
+        );
 
         self::assertCount(1, $storageCacheMyModel->__data);
         self::assertArrayHasKey('id1', $storageCacheMyModel->__data);
@@ -909,119 +983,111 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
             ],
         ];
 
-        $logger = $this->getLogger();
+        $myModelQueryBuilder = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, $modelEntry)]);
+
+        $myEmbeddedModelQueryBuilder1 = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, $embeddedModelEntries[2])]);
+        $myEmbeddedModelQueryBuilder2 = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, $embeddedModelEntries)]);
+        $myEmbeddedModelQueryBuilder3 = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, false)]);
+
+        $connection = $this->getConnection(
+            [
+                'queryBuilder' => [
+                    $myModelQueryBuilder,
+                    $myEmbeddedModelQueryBuilder1,
+                    $myEmbeddedModelQueryBuilder2,
+                    $myEmbeddedModelQueryBuilder3
+                ],
+                'beginTransaction' => 5,
+                'commit' => 5,
+                'delete' => [
+                    [
+                        'arguments' => [
+                            'tableExpression' => 'myembeddedmodels',
+                            'identifier' => [
+                                'id' => 'id3',
+                            ],
+                            'types' => [],
+                        ],
+                        'return' => 1,
+                    ],
+                    [
+                        'arguments' => [
+                            'tableExpression' => 'myembeddedmodels',
+                            'identifier' => [
+                                'id' => 'id2',
+                            ],
+                            'types' => [],
+                        ],
+                        'return' => 1,
+                    ],
+                ],
+                'insert' => [
+                    [
+                        'arguments' => [
+                            'tableExpression' => 'myembeddedmodels',
+                            'data' => [
+                                'id' => 'id3',
+                                'modelId' => 'id1',
+                                'name' => 'name1'
+                            ],
+                            'types' => [],
+                        ],
+                        'return' => 1,
+                    ],
+                ],
+                'update' => [
+                    [
+                        'arguments' => [
+                            'tableExpression' => 'mymodels',
+                            'data' => [
+                                'id' => 'id1',
+                                'name' => 'name1',
+                                'category' => 'category1',
+                                'oneToOneId' => null
+                            ],
+                            'identifier' => [
+                                'id' => 'id1',
+                            ],
+                            'types' => [],
+                        ],
+                        'return' => 1,
+                    ],
+                    [
+                        'arguments' => [
+                            'tableExpression' => 'myembeddedmodels',
+                            'data' => [
+                                'id' => 'id1',
+                                'modelId' => 'id1',
+                                'name' => 'name3',
+                            ],
+                            'identifier' => [
+                                'id' => 'id1',
+                            ],
+                            'types' => [],
+                        ],
+                        'return' => 1,
+                    ],
+                ],
+            ]
+        );
 
         $storageCacheMyModel = $this->getStorageCache();
         $storageCacheMyEmbeddedModel = $this->getStorageCache();
 
-        $myModelQueryBuilder = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, $modelEntry)]);
-
-        $myEmbeddedModelQueryBuilder1 = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, $embeddedModelEntries[1])]);
-        $myEmbeddedModelQueryBuilder2 = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, $embeddedModelEntries)]);
-        $myEmbeddedModelQueryBuilder3 = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, $embeddedModelEntries[2])]);
+        $logger = $this->getLogger();
 
         $container = $this->getContainer(
-            function (Resolver $resolver) use ($storageCacheMyModel, $logger, $myModelQueryBuilder) {
+            function (Resolver $resolver) use ($connection, $storageCacheMyModel, $logger) {
                 return new MyModelRepository(
-                    $this->getConnection(
-                        [
-                            'queryBuilder' => [$myModelQueryBuilder],
-                            'update' => [
-                                [
-                                    'arguments' => [
-                                        'tableExpression' => 'mymodels',
-                                        'data' => [
-                                            'id' => 'id1',
-                                            'name' => 'name1',
-                                            'category' => 'category1',
-                                            'oneToOneId' => null
-                                        ],
-                                        'identifier' => [
-                                            'id' => 'id1',
-                                        ],
-                                        'types' => [],
-                                    ],
-                                    'return' => 1,
-                                ],
-                            ],
-                        ]
-                    ),
+                    $connection,
                     $resolver,
                     $storageCacheMyModel,
                     $logger
                 );
             },
-            function (Resolver $resolver) use ($storageCacheMyEmbeddedModel, $logger, $myEmbeddedModelQueryBuilder1, $myEmbeddedModelQueryBuilder2, $myEmbeddedModelQueryBuilder3) {
+            function (Resolver $resolver) use ($connection, $storageCacheMyEmbeddedModel, $logger) {
                 return new MyEmbeddedRepository(
-                    $this->getConnection(
-                        [
-                            'queryBuilder' => [$myEmbeddedModelQueryBuilder1, $myEmbeddedModelQueryBuilder2, $myEmbeddedModelQueryBuilder3],
-                            'delete' => [
-                                [
-                                    'arguments' => [
-                                        'tableExpression' => 'myembeddedmodels',
-                                        'identifier' => [
-                                            'id' => 'id2',
-                                        ],
-                                        'types' => [],
-                                    ],
-                                    'return' => 1,
-                                ],
-                                [
-                                    'arguments' => [
-                                        'tableExpression' => 'myembeddedmodels',
-                                        'identifier' => [
-                                            'id' => 'id2',
-                                        ],
-                                        'types' => [],
-                                    ],
-                                    'return' => 1,
-                                ],
-                                [
-                                    'arguments' => [
-                                        'tableExpression' => 'myembeddedmodels',
-                                        'identifier' => [
-                                            'id' => 'id3',
-                                        ],
-                                        'types' => [],
-                                    ],
-                                    'return' => 1,
-                                ],
-                            ],
-                            'update' => [
-                                [
-                                    'arguments' => [
-                                        'tableExpression' => 'myembeddedmodels',
-                                        'data' => [
-                                            'id' => 'id1',
-                                            'modelId' => 'id1',
-                                            'name' => 'name3',
-                                        ],
-                                        'identifier' => [
-                                            'id' => 'id1',
-                                        ],
-                                        'types' => [],
-                                    ],
-                                    'return' => 1,
-                                ],
-                                [
-                                    'arguments' => [
-                                        'tableExpression' => 'myembeddedmodels',
-                                        'data' => [
-                                            'id' => 'id3',
-                                            'modelId' => 'id1',
-                                            'name' => 'name1',
-                                        ],
-                                        'identifier' => [
-                                            'id' => 'id3',
-                                        ],
-                                        'types' => [],
-                                    ],
-                                    'return' => 1,
-                                ],
-                            ],
-                        ]
-                    ),
+                    $connection,
                     $resolver,
                     $storageCacheMyEmbeddedModel,
                     $logger
@@ -1037,11 +1103,162 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
 
         $model->setName('name1');
         $model->setOneToOne(null);
-        $model->setOneToMany([$model->getOneToMany()[0]]);
+        $model->setOneToMany([$model->getOneToMany()[0], $model->getOneToMany()[2]]);
 
         $repository->persist($model);
 
+        self::assertEquals(
+            [
+                'select' => [
+                    [
+                        '*',
+                    ],
+                ],
+                'from' => [
+                    [
+                        'mymodels',
+                        null,
+                    ],
+                ],
+                'where' => [
+                    [
+                        [
+                            'method' => 'eq',
+                            'arguments' => [
+                                'id',
+                                ':id',
+                            ],
+                        ],
+                    ],
+                ],
+                'setParameter' => [
+                    [
+                        'id',
+                        'id1',
+                        null,
+                    ],
+                ],
+            ],
+            $myModelQueryBuilder->__calls
+        );
+
+        self::assertEquals(
+            [
+                'select' => [
+                    [
+                        '*',
+                    ],
+                ],
+                'from' => [
+                    [
+                        'myembeddedmodels',
+                        null,
+                    ],
+                ],
+                'where' => [
+                    [
+                        [
+                            'method' => 'eq',
+                            'arguments' => [
+                                'id',
+                                ':id',
+                            ],
+                        ],
+                    ],
+                ],
+                'setParameter' => [
+                    [
+                        'id',
+                        'id3',
+                        null,
+                    ],
+                ],
+            ],
+            $myEmbeddedModelQueryBuilder1->__calls
+        );
+
+        self::assertEquals(
+            [
+                'select' => [
+                    [
+                        '*',
+                    ],
+                ],
+                'from' => [
+                    [
+                        'myembeddedmodels',
+                        null,
+                    ],
+                ],
+                'setFirstResult' => [
+                    [
+                        null,
+                    ],
+                ],
+                'setMaxResults' => [
+                    [
+                        null,
+                    ],
+                ],
+                'andWhere' => [
+                    [
+                        [
+                            'method' => 'eq',
+                            'arguments' => [
+                                'modelId',
+                                ':modelId',
+                            ],
+                        ],
+                    ],
+                ],
+                'setParameter' => [
+                    [
+                        'modelId',
+                        'id1',
+                        null,
+                    ],
+                ]
+            ],
+            $myEmbeddedModelQueryBuilder2->__calls
+        );
+
+        self::assertEquals(
+            [
+                'select' => [
+                    [
+                        '*',
+                    ],
+                ],
+                'from' => [
+                    [
+                        'myembeddedmodels',
+                        null,
+                    ],
+                ],
+                'where' => [
+                    [
+                        [
+                            'method' => 'eq',
+                            'arguments' => [
+                                'id',
+                                ':id',
+                            ],
+                        ],
+                    ],
+                ],
+                'setParameter' => [
+                    [
+                        'id',
+                        'id3',
+                        null,
+                    ],
+                ],
+            ],
+            $myEmbeddedModelQueryBuilder3->__calls
+        );
+
         self::assertCount(1, $storageCacheMyModel->__data);
+
         self::assertArrayHasKey('id1', $storageCacheMyModel->__data);
         self::assertEquals([
             'id' => 'id1',
@@ -1050,6 +1267,8 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
             'oneToOneId' => null,
         ], $storageCacheMyModel->__data['id1']);
 
+        self::assertCount(2, $storageCacheMyEmbeddedModel->__data);
+
         self::assertArrayHasKey('id1', $storageCacheMyEmbeddedModel->__data);
         self::assertEquals([
             'id' => 'id1',
@@ -1057,7 +1276,14 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
             'name' => 'name3'
         ], $storageCacheMyEmbeddedModel->__data['id1']);
 
-        self::assertCount(17, $logger->__logs);
+        self::assertArrayHasKey('id3', $storageCacheMyEmbeddedModel->__data);
+        self::assertEquals([
+            'id' => 'id3',
+            'modelId' => 'id1',
+            'name' => 'name1'
+        ], $storageCacheMyEmbeddedModel->__data['id3']);
+
+        self::assertCount(18, $logger->__logs);
 
         self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
         self::assertSame('model: find row within table {table} with id {id}', $logger->__logs[0]['message']);
@@ -1079,15 +1305,15 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
 
         self::assertSame(LogLevel::INFO, $logger->__logs[3]['level']);
         self::assertSame('model: find row within table {table} with id {id}', $logger->__logs[3]['message']);
-        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id2'], $logger->__logs[3]['context']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id3'], $logger->__logs[3]['context']);
 
         self::assertSame(LogLevel::INFO, $logger->__logs[4]['level']);
         self::assertSame('model: found row within cache for table {table} with id {id}', $logger->__logs[4]['message']);
-        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id2'], $logger->__logs[4]['context']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id3'], $logger->__logs[4]['context']);
 
         self::assertSame(LogLevel::INFO, $logger->__logs[5]['level']);
         self::assertSame('model: remove row from table {table} with id {id}', $logger->__logs[5]['message']);
-        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id2'], $logger->__logs[5]['context']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id3'], $logger->__logs[5]['context']);
 
         self::assertSame(LogLevel::INFO, $logger->__logs[6]['level']);
         self::assertSame('model: find row within table {table} with id {id}', $logger->__logs[6]['message']);
@@ -1115,23 +1341,27 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
 
         self::assertSame(LogLevel::INFO, $logger->__logs[12]['level']);
         self::assertSame('model: find row within table {table} with id {id}', $logger->__logs[12]['message']);
-        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id2'], $logger->__logs[12]['context']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id3'], $logger->__logs[12]['context']);
 
-        self::assertSame(LogLevel::INFO, $logger->__logs[13]['level']);
-        self::assertSame('model: remove row from table {table} with id {id}', $logger->__logs[13]['message']);
-        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id2'], $logger->__logs[13]['context']);
+        self::assertSame(LogLevel::NOTICE, $logger->__logs[13]['level']);
+        self::assertSame('model: row within table {table} with id {id} not found', $logger->__logs[13]['message']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id3'], $logger->__logs[13]['context']);
 
         self::assertSame(LogLevel::INFO, $logger->__logs[14]['level']);
-        self::assertSame('model: find row within table {table} with id {id}', $logger->__logs[14]['message']);
+        self::assertSame('model: insert row into table {table} with id {id}', $logger->__logs[14]['message']);
         self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id3'], $logger->__logs[14]['context']);
 
         self::assertSame(LogLevel::INFO, $logger->__logs[15]['level']);
-        self::assertSame('model: found row within cache for table {table} with id {id}', $logger->__logs[15]['message']);
-        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id3'], $logger->__logs[15]['context']);
+        self::assertSame('model: find row within table {table} with id {id}', $logger->__logs[15]['message']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id2'], $logger->__logs[15]['context']);
 
         self::assertSame(LogLevel::INFO, $logger->__logs[16]['level']);
-        self::assertSame('model: remove row from table {table} with id {id}', $logger->__logs[16]['message']);
-        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id3'], $logger->__logs[16]['context']);
+        self::assertSame('model: found row within cache for table {table} with id {id}', $logger->__logs[16]['message']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id2'], $logger->__logs[16]['context']);
+
+        self::assertSame(LogLevel::INFO, $logger->__logs[17]['level']);
+        self::assertSame('model: remove row from table {table} with id {id}', $logger->__logs[17]['message']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id2'], $logger->__logs[17]['context']);
     }
 
     /**
@@ -1167,80 +1397,77 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
             ],
         ];
 
-        $logger = $this->getLogger();
+        $connection = $this->getConnection(
+            [
+                'queryBuilder' => [
+                    $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, $modelEntry)]),
+                    $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, $embeddedModelEntries)]),
+                    $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, false)]),
+                ],
+                'beginTransaction' => 4,
+                'commit' => 4,
+                'delete' => [
+                    [
+                        'arguments' => [
+                            'tableExpression' => 'myembeddedmodels',
+                            'identifier' => [
+                                'id' => 'id1',
+                            ],
+                            'types' => [],
+                        ],
+                        'return' => 1,
+                    ],
+                    [
+                        'arguments' => [
+                            'tableExpression' => 'myembeddedmodels',
+                            'identifier' => [
+                                'id' => 'id2',
+                            ],
+                            'types' => [],
+                        ],
+                        'return' => 1,
+                    ],
+                    [
+                        'arguments' => [
+                            'tableExpression' => 'myembeddedmodels',
+                            'identifier' => [
+                                'id' => 'id3',
+                            ],
+                            'types' => [],
+                        ],
+                        'return' => 1,
+                    ],
+                    [
+                        'arguments' => [
+                            'tableExpression' => 'mymodels',
+                            'identifier' => [
+                                'id' => 'id1',
+                            ],
+                            'types' => [],
+                        ],
+                        'return' => 1,
+                    ],
+                ],
+            ]
+        );
 
         $storageCacheMyModel = $this->getStorageCache();
         $storageCacheMyEmbeddedModel = $this->getStorageCache();
 
-        $myModelQueryBuilder1 = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, $modelEntry)]);
-        $myModelQueryBuilder2 = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, false)]);
-
-        $myEmbeddedModelQueryBuilder = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, $embeddedModelEntries)]);
+        $logger = $this->getLogger();
 
         $container = $this->getContainer(
-            function (Resolver $resolver) use ($storageCacheMyModel, $logger, $myModelQueryBuilder1, $myModelQueryBuilder2) {
+            function (Resolver $resolver) use ($connection, $storageCacheMyModel, $logger) {
                 return new MyModelRepository(
-                    $this->getConnection(
-                        [
-                            'queryBuilder' => [$myModelQueryBuilder1, $myModelQueryBuilder2],
-                            'delete' => [
-                                [
-                                    'arguments' => [
-                                        'tableExpression' => 'mymodels',
-                                        'identifier' => [
-                                            'id' => 'id1',
-                                        ],
-                                        'types' => [],
-                                    ],
-                                    'return' => 1,
-                                ],
-                            ],
-                        ]
-                    ),
+                    $connection,
                     $resolver,
                     $storageCacheMyModel,
                     $logger
                 );
             },
-            function (Resolver $resolver) use ($storageCacheMyEmbeddedModel, $logger, $myEmbeddedModelQueryBuilder) {
+            function (Resolver $resolver) use ($connection, $storageCacheMyEmbeddedModel, $logger) {
                 return new MyEmbeddedRepository(
-                    $this->getConnection(
-                        [
-                            'queryBuilder' => [$myEmbeddedModelQueryBuilder],
-                            'delete' => [
-                                [
-                                    'arguments' => [
-                                        'tableExpression' => 'myembeddedmodels',
-                                        'identifier' => [
-                                            'id' => 'id1',
-                                        ],
-                                        'types' => [],
-                                    ],
-                                    'return' => 1,
-                                ],
-                                [
-                                    'arguments' => [
-                                        'tableExpression' => 'myembeddedmodels',
-                                        'identifier' => [
-                                            'id' => 'id2',
-                                        ],
-                                        'types' => [],
-                                    ],
-                                    'return' => 1,
-                                ],
-                                [
-                                    'arguments' => [
-                                        'tableExpression' => 'myembeddedmodels',
-                                        'identifier' => [
-                                            'id' => 'id3',
-                                        ],
-                                        'types' => [],
-                                    ],
-                                    'return' => 1,
-                                ],
-                            ],
-                        ]
-                    ),
+                    $connection,
                     $resolver,
                     $storageCacheMyEmbeddedModel,
                     $logger
@@ -1257,6 +1484,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
         $repository->remove($model);
 
         self::assertCount(0, $storageCacheMyModel->__data);
+        self::assertCount(0, $storageCacheMyEmbeddedModel->__data);
 
         self::assertCount(14, $logger->__logs);
 
@@ -1338,23 +1566,25 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
             'oneToOneId' => null
         ];
 
-        $logger = $this->getLogger();
+        $connnection = $this->getConnection();
 
         $storageCacheMyModel = $this->getStorageCache([$modelEntry]);
         $storageCacheMyEmbeddedModel = $this->getStorageCache();
 
+        $logger = $this->getLogger();
+
         $container = $this->getContainer(
-            function (Resolver $resolver) use ($storageCacheMyModel, $logger) {
+            function (Resolver $resolver) use ($connnection, $storageCacheMyModel, $logger) {
                 return new MyModelRepository(
-                    $this->getConnection(),
+                    $connnection,
                     $resolver,
                     $storageCacheMyModel,
                     $logger
                 );
             },
-            function (Resolver $resolver) use ($storageCacheMyEmbeddedModel, $logger) {
+            function (Resolver $resolver) use ($connnection, $storageCacheMyEmbeddedModel, $logger) {
                 return new MyEmbeddedRepository(
-                    $this->getConnection(),
+                    $connnection,
                     $resolver,
                     $storageCacheMyEmbeddedModel,
                     $logger

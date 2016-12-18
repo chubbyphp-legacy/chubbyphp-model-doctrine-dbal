@@ -202,6 +202,8 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
         $id = $model->getId();
         $row = $model->toPersistence();
 
+        $this->connection->beginTransaction();
+
         $modelCollections = [];
         foreach ($row as $field => $value) {
             if ($value instanceof ModelCollectionInterface) {
@@ -225,6 +227,8 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
 
         $this->storageCache->set($id, $row);
 
+        $this->connection->commit();
+
         return $this;
     }
 
@@ -241,6 +245,8 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
         if (null === $this->find($id)) {
             return $this;
         }
+
+        $this->connection->beginTransaction();
 
         $this->logger->info(
             'model: remove row from table {table} with id {id}',
@@ -262,6 +268,8 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
         $this->connection->delete($table, ['id' => $id]);
 
         $this->storageCache->remove($id);
+
+        $this->connection->commit();
 
         return $this;
     }
