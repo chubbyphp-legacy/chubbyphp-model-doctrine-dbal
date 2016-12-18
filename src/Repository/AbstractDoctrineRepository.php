@@ -72,6 +72,11 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
         $this->logger->info('model: find row within table {table} with id {id}', ['table' => $table, 'id' => $id]);
 
         if ($this->storageCache->has($id)) {
+            $this->logger->info(
+                'model: found row within cache for table {table} with id {id}',
+                ['table' => $table, 'id' => $id]
+            );
+
             return $this->fromPersistence($this->storageCache->get($id));
         }
 
@@ -202,7 +207,7 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
             if ($value instanceof ModelCollectionInterface) {
                 $modelCollections[] = $value;
                 unset($row[$field]);
-            } elseif ($value instanceof ModelReferenceInterface) {
+            } else if ($value instanceof ModelReferenceInterface) {
                 $row[$field.'Id'] = $this->persistReference($value);
                 unset($row[$field]);
             }
@@ -230,11 +235,16 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
      */
     public function remove(ModelInterface $model): RepositoryInterface
     {
+        $id = $model->getId();
         $table = $this->getTable();
+
+        if (null === $this->find($id)) {
+            return $this;
+        }
 
         $this->logger->info(
             'model: remove row from table {table} with id {id}',
-            ['table' => $table, 'id' => $model->getId()]
+            ['table' => $table, 'id' => $id]
         );
 
         $row = $model->toPersistence();
@@ -242,16 +252,16 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
         foreach ($row as $field => $value) {
             if ($value instanceof ModelCollectionInterface) {
                 $this->removeRelatedModels($value);
-            } elseif ($value instanceof ModelReferenceInterface) {
+            } else if ($value instanceof ModelReferenceInterface) {
                 if (null !== $initialModel = $value->getInitialModel()) {
                     $this->removeRelatedModel($initialModel);
                 }
             }
         }
 
-        $this->connection->delete($table, ['id' => $model->getId()]);
+        $this->connection->delete($table, ['id' => $id]);
 
-        $this->storageCache->remove($model->getId());
+        $this->storageCache->remove($id);
 
         return $this;
     }

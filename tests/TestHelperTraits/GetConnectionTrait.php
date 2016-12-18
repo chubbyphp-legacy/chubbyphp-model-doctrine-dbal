@@ -98,13 +98,13 @@ trait GetConnectionTrait
                     self::assertNotNull($insert,
                         sprintf(
                             'insert failed, cause there was no data within $insertStack at call %d',
-                            $insertStack
+                            $insertStackCounter
                         )
                     );
 
-                    self::assertSame($insert['arguments'][0], $tableExpression);
-                    self::assertSame($insert['arguments'][1], $data);
-                    self::assertSame($insert['arguments'][2], $types);
+                    self::assertSame($insert['arguments']['tableExpression'], $tableExpression, sprintf('$insertStack at call %d, argument: tableExpression', $insertStackCounter));
+                    self::assertSame($insert['arguments']['data'], $data, sprintf('$insertStack at call %d, argument: data', $insertStackCounter));
+                    self::assertSame($insert['arguments']['types'], $types, sprintf('$insertStack at call %d, argument: types', $insertStackCounter));
 
                     return $insert['return'];
                 }
@@ -129,14 +129,14 @@ trait GetConnectionTrait
                     self::assertNotNull($update,
                         sprintf(
                             'update failed, cause there was no data within $updateStack at call %d',
-                            $updateStack
+                            $updateStackCounter
                         )
                     );
 
-                    self::assertSame($update['arguments'][0], $tableExpression);
-                    self::assertSame($update['arguments'][1], $data);
-                    self::assertSame($update['arguments'][2], $identifier);
-                    self::assertSame($update['arguments'][3], $types);
+                    self::assertSame($update['arguments']['tableExpression'], $tableExpression, sprintf('$updateStack at call %d, argument: tableExpression', $updateStackCounter));
+                    self::assertSame($update['arguments']['identifier'], $identifier, sprintf('$updateStack at call %d, argument: identifier', $updateStackCounter));
+                    self::assertSame($update['arguments']['data'], $data, sprintf('$updateStack at call %d, argument: data', $updateStackCounter));
+                    self::assertSame($update['arguments']['types'], $types, sprintf('$updateStack at call %d, argument: types', $updateStackCounter));
 
                     return $update['return'];
                 }
@@ -160,13 +160,13 @@ trait GetConnectionTrait
                     self::assertNotNull($delete,
                         sprintf(
                             'delete failed, cause there was no data within $deleteStack at call %d',
-                            $deleteStack
+                            $deleteStackCounter
                         )
                     );
 
-                    self::assertSame($delete['arguments'][0], $tableExpression);
-                    self::assertSame($delete['arguments'][1], $identifier);
-                    self::assertSame($delete['arguments'][2], $types);
+                    self::assertSame($delete['arguments']['tableExpression'], $tableExpression, sprintf('$deleteStack at call %d, argument: tableExpression', $deleteStackCounter));
+                    self::assertSame($delete['arguments']['identifier'], $identifier, sprintf('$deleteStack at call %d, argument: identifier', $deleteStackCounter));
+                    self::assertSame($delete['arguments']['types'], $types, sprintf('$deleteStack at call %d, argument: types', $deleteStackCounter));
 
                     return $delete['return'];
                 }
@@ -189,9 +189,9 @@ trait GetConnectionTrait
                     )
                 );
 
-                self::assertSame($fetchAll['arguments'][0], $sql);
-                self::assertSame($fetchAll['arguments'][1], $params);
-                self::assertSame($fetchAll['arguments'][2], $types);
+                self::assertSame($fetchAll['arguments']['sql'], $sql, sprintf('$fetchAllStack at call %d, argument: sql', $fetchAllCounter));
+                self::assertSame($fetchAll['arguments']['params'], $params, sprintf('$fetchAllStack at call %d, argument: params', $fetchAllCounter));
+                self::assertSame($fetchAll['arguments']['types'], $types, sprintf('$fetchAllStack at call %d, argument: types', $fetchAllCounter));
 
                 return $fetchAll['return'];
             });
@@ -213,9 +213,9 @@ trait GetConnectionTrait
                     )
                 );
 
-                self::assertSame($executeUpdate['arguments'][0], $sql);
-                self::assertSame($executeUpdate['arguments'][1], $params);
-                self::assertSame($executeUpdate['arguments'][2], $types);
+                self::assertSame($executeUpdate['arguments']['sql'], $sql, sprintf('$executeUpdateStack at call %d, argument: sql', $executeUpdateCounter));
+                self::assertSame($executeUpdate['arguments']['params'], $params, sprintf('$executeUpdateStack at call %d, argument: params', $executeUpdateCounter));
+                self::assertSame($executeUpdate['arguments']['types'], $types, sprintf('$executeUpdateStack at call %d, argument: types', $executeUpdateCounter));
 
                 return $executeUpdate['return'];
             });

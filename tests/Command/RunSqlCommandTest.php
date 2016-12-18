@@ -25,9 +25,9 @@ final class RunSqlCommandTest extends \PHPUnit_Framework_TestCase
             'fetchAll' => [
                 [
                     'arguments' => [
-                        $sql,
-                        [],
-                        [],
+                        'sql' => $sql,
+                        'params' => [],
+                        'types' => [],
                     ],
                     'return' => [
                         [
@@ -79,9 +79,9 @@ final class RunSqlCommandTest extends \PHPUnit_Framework_TestCase
             'executeUpdate' => [
                 [
                     'arguments' => [
-                        $sql,
-                        [],
-                        [],
+                        'sql' => $sql,
+                        'params' => [],
+                        'types' => [],
                     ],
                     'return' => 1,
                 ],

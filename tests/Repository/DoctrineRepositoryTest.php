@@ -16,6 +16,7 @@ use Chubbyphp\Tests\Model\Doctrine\DBAL\TestHelperTraits\GetResolverTrait;
 use Chubbyphp\Tests\Model\Doctrine\DBAL\TestHelperTraits\GetStorageCacheTrait;
 use Doctrine\DBAL\Connection;
 use Interop\Container\ContainerInterface;
+use MyProject\Model\MyEmbeddedModel;
 use MyProject\Model\MyModel;
 use MyProject\Repository\MyEmbeddedRepository;
 use MyProject\Repository\MyModelRepository;
@@ -36,22 +37,24 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
     public function testFindWithNullId()
     {
         $logger = $this->getLogger();
-        $storageCache = $this->getStorageCache();
+
+        $storageCacheMyModel = $this->getStorageCache();
+        $storageCacheMyEmbeddedModel = $this->getStorageCache();
 
         $container = $this->getContainer(
-            function (Resolver $resolver) use ($storageCache, $logger) {
+            function (Resolver $resolver) use ($storageCacheMyModel, $logger) {
                 return new MyModelRepository(
                     $this->getConnection(),
                     $resolver,
-                    $storageCache,
+                    $storageCacheMyModel,
                     $logger
                 );
             },
-            function (Resolver $resolver) use ($storageCache, $logger) {
+            function (Resolver $resolver) use ($storageCacheMyEmbeddedModel, $logger) {
                 return new MyEmbeddedRepository(
                     $this->getConnection(),
                     $resolver,
-                    $storageCache,
+                    $storageCacheMyEmbeddedModel,
                     $logger
                 );
             }
@@ -77,22 +80,24 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
         ];
 
         $logger = $this->getLogger();
-        $storageCache = $this->getStorageCache([$modelEntry]);
+
+        $storageCacheMyModel = $this->getStorageCache([$modelEntry]);
+        $storageCacheMyEmbeddedModel = $this->getStorageCache();
 
         $container = $this->getContainer(
-            function (Resolver $resolver) use ($storageCache, $logger) {
+            function (Resolver $resolver) use ($storageCacheMyModel, $logger) {
                 return new MyModelRepository(
                     $this->getConnection(),
                     $resolver,
-                    $storageCache,
+                    $storageCacheMyModel,
                     $logger
                 );
             },
-            function (Resolver $resolver) use ($storageCache, $logger) {
+            function (Resolver $resolver) use ($storageCacheMyEmbeddedModel, $logger) {
                 return new MyEmbeddedRepository(
                     $this->getConnection(),
                     $resolver,
-                    $storageCache,
+                    $storageCacheMyEmbeddedModel,
                     $logger
                 );
             }
@@ -110,10 +115,13 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
         self::assertSame($modelEntry['name'], $model->getName());
         self::assertSame($modelEntry['category'], $model->getCategory());
 
-        self::assertCount(1, $logger->__logs);
+        self::assertCount(2, $logger->__logs);
         self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
         self::assertSame('model: find row within table {table} with id {id}', $logger->__logs[0]['message']);
         self::assertSame(['table' => 'mymodels', 'id' => 'id1'], $logger->__logs[0]['context']);
+        self::assertSame(LogLevel::INFO, $logger->__logs[1]['level']);
+        self::assertSame('model: found row within cache for table {table} with id {id}', $logger->__logs[1]['message']);
+        self::assertSame(['table' => 'mymodels', 'id' => 'id1'], $logger->__logs[1]['context']);
     }
 
     /**
@@ -130,24 +138,26 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
         ];
 
         $logger = $this->getLogger();
-        $storageCache = $this->getStorageCache();
+
+        $storageCacheMyModel = $this->getStorageCache();
+        $storageCacheMyEmbeddedModel = $this->getStorageCache();
 
         $myModelQueryBuilder = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, $modelEntry)]);
 
         $container = $this->getContainer(
-            function (Resolver $resolver) use ($storageCache, $logger, $myModelQueryBuilder) {
+            function (Resolver $resolver) use ($storageCacheMyModel, $logger, $myModelQueryBuilder) {
                 return new MyModelRepository(
                     $this->getConnection(['queryBuilder' => [$myModelQueryBuilder]]),
                     $resolver,
-                    $storageCache,
+                    $storageCacheMyModel,
                     $logger
                 );
             },
-            function (Resolver $resolver) use ($storageCache, $logger) {
+            function (Resolver $resolver) use ($storageCacheMyEmbeddedModel, $logger) {
                 return new MyEmbeddedRepository(
                     $this->getConnection(),
                     $resolver,
-                    $storageCache,
+                    $storageCacheMyEmbeddedModel,
                     $logger
                 );
             }
@@ -200,9 +210,9 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
             $myModelQueryBuilder->__calls
         );
 
-        self::assertCount(1, $storageCache->__data);
-        self::assertArrayHasKey('id1', $storageCache->__data);
-        self::assertEquals($modelEntry, $storageCache->__data['id1']);
+        self::assertCount(1, $storageCacheMyModel->__data);
+        self::assertArrayHasKey('id1', $storageCacheMyModel->__data);
+        self::assertEquals($modelEntry, $storageCacheMyModel->__data['id1']);
 
         self::assertCount(1, $logger->__logs);
         self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
@@ -217,24 +227,26 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
     public function testFindNotFound()
     {
         $logger = $this->getLogger();
-        $storageCache = $this->getStorageCache();
+
+        $storageCacheMyModel = $this->getStorageCache();
+        $storageCacheMyEmbeddedModel = $this->getStorageCache();
 
         $myModelQueryBuilder = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, false),]);
 
         $container = $this->getContainer(
-            function (Resolver $resolver) use ($storageCache, $logger, $myModelQueryBuilder) {
+            function (Resolver $resolver) use ($storageCacheMyModel, $logger, $myModelQueryBuilder) {
                 return new MyModelRepository(
                     $this->getConnection(['queryBuilder' => [$myModelQueryBuilder]]),
                     $resolver,
-                    $storageCache,
+                    $storageCacheMyModel,
                     $logger
                 );
             },
-            function (Resolver $resolver) use ($storageCache, $logger) {
+            function (Resolver $resolver) use ($storageCacheMyEmbeddedModel, $logger) {
                 return new MyEmbeddedRepository(
                     $this->getConnection(),
                     $resolver,
-                    $storageCache,
+                    $storageCacheMyEmbeddedModel,
                     $logger
                 );
             }
@@ -280,7 +292,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
             $myModelQueryBuilder->__calls
         );
 
-        self::assertCount(0, $storageCache->__data);
+        self::assertCount(0, $storageCacheMyModel->__data);
 
         self::assertCount(2, $logger->__logs);
         self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
@@ -307,24 +319,26 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
         ];
 
         $logger = $this->getLogger();
-        $storageCache = $this->getStorageCache();
+
+        $storageCacheMyModel = $this->getStorageCache();
+        $storageCacheMyEmbeddedModel = $this->getStorageCache();
 
         $myModelQueryBuilder = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, $modelEntries)]);
 
         $container = $this->getContainer(
-            function (Resolver $resolver) use ($storageCache, $logger, $myModelQueryBuilder) {
+            function (Resolver $resolver) use ($storageCacheMyModel, $logger, $myModelQueryBuilder) {
                 return new MyModelRepository(
                     $this->getConnection(['queryBuilder' => [$myModelQueryBuilder]]),
                     $resolver,
-                    $storageCache,
+                    $storageCacheMyModel,
                     $logger
                 );
             },
-            function (Resolver $resolver) use ($storageCache, $logger) {
+            function (Resolver $resolver) use ($storageCacheMyEmbeddedModel, $logger) {
                 return new MyEmbeddedRepository(
                     $this->getConnection(),
                     $resolver,
-                    $storageCache,
+                    $storageCacheMyEmbeddedModel,
                     $logger
                 );
             }
@@ -393,9 +407,9 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
             $myModelQueryBuilder->__calls
         );
 
-        self::assertCount(1, $storageCache->__data);
-        self::assertArrayHasKey('id1', $storageCache->__data);
-        self::assertEquals($modelEntries[0], $storageCache->__data['id1']);
+        self::assertCount(1, $storageCacheMyModel->__data);
+        self::assertArrayHasKey('id1', $storageCacheMyModel->__data);
+        self::assertEquals($modelEntries[0], $storageCacheMyModel->__data['id1']);
 
         self::assertCount(1, $logger->__logs);
         self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
@@ -416,24 +430,26 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
     public function testFindOneByNotFound()
     {
         $logger = $this->getLogger();
-        $storageCache = $this->getStorageCache();
+
+        $storageCacheMyModel = $this->getStorageCache();
+        $storageCacheMyEmbeddedModel = $this->getStorageCache();
 
         $myModelQueryBuilder = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, [])]);
 
         $container = $this->getContainer(
-            function (Resolver $resolver) use ($storageCache, $logger, $myModelQueryBuilder) {
+            function (Resolver $resolver) use ($storageCacheMyModel, $logger, $myModelQueryBuilder) {
                 return new MyModelRepository(
                     $this->getConnection(['queryBuilder' => [$myModelQueryBuilder]]),
                     $resolver,
-                    $storageCache,
+                    $storageCacheMyModel,
                     $logger
                 );
             },
-            function (Resolver $resolver) use ($storageCache, $logger) {
+            function (Resolver $resolver) use ($storageCacheMyEmbeddedModel, $logger) {
                 return new MyEmbeddedRepository(
                     $this->getConnection(),
                     $resolver,
-                    $storageCache,
+                    $storageCacheMyEmbeddedModel,
                     $logger
                 );
             }
@@ -495,7 +511,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
             $myModelQueryBuilder->__calls
         );
 
-        self::assertCount(0, $storageCache->__data);
+        self::assertCount(0, $storageCacheMyModel->__data);
 
         self::assertCount(2, $logger->__logs);
         self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
@@ -536,24 +552,26 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
         ];
 
         $logger = $this->getLogger();
-        $storageCache = $this->getStorageCache();
+
+        $storageCacheMyModel = $this->getStorageCache();
+        $storageCacheMyEmbeddedModel = $this->getStorageCache();
 
         $myModelQueryBuilder = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, $modelEntries)]);
 
         $container = $this->getContainer(
-            function (Resolver $resolver) use ($storageCache, $logger, $myModelQueryBuilder) {
+            function (Resolver $resolver) use ($storageCacheMyModel, $logger, $myModelQueryBuilder) {
                 return new MyModelRepository(
                     $this->getConnection(['queryBuilder' => [$myModelQueryBuilder]]),
                     $resolver,
-                    $storageCache,
+                    $storageCacheMyModel,
                     $logger
                 );
             },
-            function (Resolver $resolver) use ($storageCache, $logger) {
+            function (Resolver $resolver) use ($storageCacheMyEmbeddedModel, $logger) {
                 return new MyEmbeddedRepository(
                     $this->getConnection(),
                     $resolver,
-                    $storageCache,
+                    $storageCacheMyEmbeddedModel,
                     $logger
                 );
             }
@@ -624,9 +642,9 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
             $myModelQueryBuilder->__calls
         );
 
-        self::assertCount(1, $storageCache->__data);
-        self::assertArrayHasKey('id1', $storageCache->__data);
-        self::assertEquals($modelEntries[0], $storageCache->__data['id1']);
+        self::assertCount(1, $storageCacheMyModel->__data);
+        self::assertArrayHasKey('id1', $storageCacheMyModel->__data);
+        self::assertEquals($modelEntries[0], $storageCacheMyModel->__data['id1']);
 
         self::assertCount(1, $logger->__logs);
         self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
@@ -649,24 +667,26 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
     public function testFindByNotFound()
     {
         $logger = $this->getLogger();
-        $storageCache = $this->getStorageCache();
+
+        $storageCacheMyModel = $this->getStorageCache();
+        $storageCacheMyEmbeddedModel = $this->getStorageCache();
 
         $myModelQueryBuilder = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, [])]);
 
         $container = $this->getContainer(
-            function (Resolver $resolver) use ($storageCache, $logger, $myModelQueryBuilder) {
+            function (Resolver $resolver) use ($storageCacheMyModel, $logger, $myModelQueryBuilder) {
                 return new MyModelRepository(
                     $this->getConnection(['queryBuilder' => [$myModelQueryBuilder]]),
                     $resolver,
-                    $storageCache,
+                    $storageCacheMyModel,
                     $logger
                 );
             },
-            function (Resolver $resolver) use ($storageCache, $logger) {
+            function (Resolver $resolver) use ($storageCacheMyEmbeddedModel, $logger) {
                 return new MyEmbeddedRepository(
                     $this->getConnection(),
                     $resolver,
-                    $storageCache,
+                    $storageCacheMyEmbeddedModel,
                     $logger
                 );
             }
@@ -722,7 +742,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
             $myModelQueryBuilder->__calls
         );
 
-        self::assertCount(0, $storageCache->__data);
+        self::assertCount(0, $storageCacheMyModel->__data);
 
         self::assertCount(1, $logger->__logs);
         self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
@@ -745,12 +765,15 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
     public function testPersistWithNewModel()
     {
         $logger = $this->getLogger();
-        $storageCache = $this->getStorageCache();
+
+        $storageCacheMyModel = $this->getStorageCache();
+        $storageCacheMyEmbeddedModel = $this->getStorageCache();
 
         $myModelQueryBuilder = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, false)]);
+        $myEmbeddedModelQueryBuilder = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, false)]);
 
         $container = $this->getContainer(
-            function (Resolver $resolver) use ($storageCache, $logger, $myModelQueryBuilder) {
+            function (Resolver $resolver) use ($storageCacheMyModel, $logger, $myModelQueryBuilder) {
                 return new MyModelRepository(
                     $this->getConnection(
                         [
@@ -758,14 +781,14 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
                             'insert' => [
                                 [
                                     'arguments' => [
-                                        'mymodels',
-                                        [
+                                        'tableExpression' => 'mymodels',
+                                        'data' => [
                                             'id' => 'id1',
                                             'name' => 'name1',
                                             'category' => 'category1',
-                                            'oneToOneId' => null
+                                            'oneToOneId' => 'id1'
                                         ],
-                                        [],
+                                        'types' => [],
                                     ],
                                     'return' => 1,
                                 ],
@@ -773,15 +796,33 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
                         ]
                     ),
                     $resolver,
-                    $storageCache,
+                    $storageCacheMyModel,
                     $logger
                 );
             },
-            function (Resolver $resolver) use ($storageCache, $logger) {
+            function (Resolver $resolver) use ($storageCacheMyEmbeddedModel, $logger, $myEmbeddedModelQueryBuilder) {
                 return new MyEmbeddedRepository(
-                    $this->getConnection(),
+                    $this->getConnection(
+                        [
+                            'queryBuilder' => [$myEmbeddedModelQueryBuilder],
+                            'insert' => [
+                                [
+                                    'arguments' => [
+                                        'tableExpression' => 'myembeddedmodels',
+                                        'data' => [
+                                            'id' => 'id1',
+                                            'modelId' => 'id1',
+                                            'name' => 'name1'
+                                        ],
+                                        'types' => [],
+                                    ],
+                                    'return' => 1,
+                                ],
+                            ],
+                        ]
+                    ),
                     $resolver,
-                    $storageCache,
+                    $storageCacheMyEmbeddedModel,
                     $logger
                 );
             }
@@ -790,35 +831,55 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
         /** @var MyModelRepository $repository */
         $repository = $container[MyModelRepository::class];
 
-        $model = MyModel::create('id1')->setName('name1')->setCategory('category1');
+        $model = MyModel::create('id1')->setName('name1')->setCategory('category1')->setOneToOne(
+            MyEmbeddedModel::create('id1', 'id1')->setName('name1')
+        );
 
         $repository->persist($model);
 
-        self::assertCount(1, $storageCache->__data);
-        self::assertArrayHasKey('id1', $storageCache->__data);
+        self::assertCount(1, $storageCacheMyModel->__data);
+        self::assertArrayHasKey('id1', $storageCacheMyModel->__data);
         self::assertEquals([
             'id' => 'id1',
             'name' => 'name1',
             'category' => 'category1',
-            'oneToOneId' => null,
-        ], $storageCache->__data['id1']);
+            'oneToOneId' => 'id1',
+        ], $storageCacheMyModel->__data['id1']);
 
-        self::assertCount(3, $logger->__logs);
+        self::assertCount(6, $logger->__logs);
+
         self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
         self::assertSame('model: find row within table {table} with id {id}', $logger->__logs[0]['message']);
-        self::assertSame(['table' => 'mymodels', 'id' => 'id1'], $logger->__logs[0]['context']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id1'], $logger->__logs[0]['context']);
+
         self::assertSame(LogLevel::NOTICE, $logger->__logs[1]['level']);
         self::assertSame('model: row within table {table} with id {id} not found', $logger->__logs[1]['message']);
-        self::assertSame(['table' => 'mymodels', 'id' => 'id1'], $logger->__logs[1]['context']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id1'], $logger->__logs[1]['context']);
+
         self::assertSame(LogLevel::INFO, $logger->__logs[2]['level']);
         self::assertSame('model: insert row into table {table} with id {id}', $logger->__logs[2]['message']);
-        self::assertSame(['table' => 'mymodels', 'id' => 'id1'], $logger->__logs[2]['context']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id1'], $logger->__logs[2]['context']);
+
+        self::assertSame(LogLevel::INFO, $logger->__logs[3]['level']);
+        self::assertSame('model: find row within table {table} with id {id}', $logger->__logs[3]['message']);
+        self::assertSame(['table' => 'mymodels', 'id' => 'id1'], $logger->__logs[3]['context']);
+
+        self::assertSame(LogLevel::NOTICE, $logger->__logs[4]['level']);
+        self::assertSame('model: row within table {table} with id {id} not found', $logger->__logs[4]['message']);
+        self::assertSame(['table' => 'mymodels', 'id' => 'id1'], $logger->__logs[4]['context']);
+
+        self::assertSame(LogLevel::INFO, $logger->__logs[5]['level']);
+        self::assertSame('model: insert row into table {table} with id {id}', $logger->__logs[5]['message']);
+        self::assertSame(['table' => 'mymodels', 'id' => 'id1'], $logger->__logs[5]['context']);
     }
 
     /**
      * @covers \Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository::__construct
      * @covers \Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository::persist
      * @covers \Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository::persistReference
+     * @covers \Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository::persistCollection
+     * @covers \Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository::persistRelatedModel
+     * @covers \Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository::removeRelatedModel
      * @covers \Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository::update
      */
     public function testPersistWithExistingModel()
@@ -827,17 +888,40 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
             'id' => 'id1',
             'name' => 'name3',
             'category' => 'category1',
-            'oneToOneId' => null
+            'oneToOneId' => 'id3'
+        ];
+
+        $embeddedModelEntries = [
+            [
+                'id' => 'id1',
+                'modelId' => 'id1',
+                'name' => 'name3'
+            ],
+            [
+                'id' => 'id2',
+                'modelId' => 'id1',
+                'name' => 'name2'
+            ],
+            [
+                'id' => 'id3',
+                'modelId' => 'id1',
+                'name' => 'name1'
+            ],
         ];
 
         $logger = $this->getLogger();
-        $storageCache = $this->getStorageCache();
+
+        $storageCacheMyModel = $this->getStorageCache();
+        $storageCacheMyEmbeddedModel = $this->getStorageCache();
 
         $myModelQueryBuilder = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, $modelEntry)]);
-        $myEmbeddedModelQueryBuilder = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, [])]);
+
+        $myEmbeddedModelQueryBuilder1 = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, $embeddedModelEntries[1])]);
+        $myEmbeddedModelQueryBuilder2 = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, $embeddedModelEntries)]);
+        $myEmbeddedModelQueryBuilder3 = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, $embeddedModelEntries[2])]);
 
         $container = $this->getContainer(
-            function (Resolver $resolver) use ($storageCache, $logger, $myModelQueryBuilder) {
+            function (Resolver $resolver) use ($storageCacheMyModel, $logger, $myModelQueryBuilder) {
                 return new MyModelRepository(
                     $this->getConnection(
                         [
@@ -845,17 +929,17 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
                             'update' => [
                                 [
                                     'arguments' => [
-                                        'mymodels',
-                                        [
+                                        'tableExpression' => 'mymodels',
+                                        'data' => [
                                             'id' => 'id1',
                                             'name' => 'name1',
                                             'category' => 'category1',
                                             'oneToOneId' => null
                                         ],
-                                        [
+                                        'identifier' => [
                                             'id' => 'id1',
                                         ],
-                                        [],
+                                        'types' => [],
                                     ],
                                     'return' => 1,
                                 ],
@@ -863,19 +947,83 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
                         ]
                     ),
                     $resolver,
-                    $storageCache,
+                    $storageCacheMyModel,
                     $logger
                 );
             },
-            function (Resolver $resolver) use ($storageCache, $logger, $myEmbeddedModelQueryBuilder) {
+            function (Resolver $resolver) use ($storageCacheMyEmbeddedModel, $logger, $myEmbeddedModelQueryBuilder1, $myEmbeddedModelQueryBuilder2, $myEmbeddedModelQueryBuilder3) {
                 return new MyEmbeddedRepository(
                     $this->getConnection(
                         [
-                            'queryBuilder' => [$myEmbeddedModelQueryBuilder],
+                            'queryBuilder' => [$myEmbeddedModelQueryBuilder1, $myEmbeddedModelQueryBuilder2, $myEmbeddedModelQueryBuilder3],
+                            'delete' => [
+                                [
+                                    'arguments' => [
+                                        'tableExpression' => 'myembeddedmodels',
+                                        'identifier' => [
+                                            'id' => 'id2',
+                                        ],
+                                        'types' => [],
+                                    ],
+                                    'return' => 1,
+                                ],
+                                [
+                                    'arguments' => [
+                                        'tableExpression' => 'myembeddedmodels',
+                                        'identifier' => [
+                                            'id' => 'id2',
+                                        ],
+                                        'types' => [],
+                                    ],
+                                    'return' => 1,
+                                ],
+                                [
+                                    'arguments' => [
+                                        'tableExpression' => 'myembeddedmodels',
+                                        'identifier' => [
+                                            'id' => 'id3',
+                                        ],
+                                        'types' => [],
+                                    ],
+                                    'return' => 1,
+                                ],
+                            ],
+                            'update' => [
+                                [
+                                    'arguments' => [
+                                        'tableExpression' => 'myembeddedmodels',
+                                        'data' => [
+                                            'id' => 'id1',
+                                            'modelId' => 'id1',
+                                            'name' => 'name3',
+                                        ],
+                                        'identifier' => [
+                                            'id' => 'id1',
+                                        ],
+                                        'types' => [],
+                                    ],
+                                    'return' => 1,
+                                ],
+                                [
+                                    'arguments' => [
+                                        'tableExpression' => 'myembeddedmodels',
+                                        'data' => [
+                                            'id' => 'id3',
+                                            'modelId' => 'id1',
+                                            'name' => 'name1',
+                                        ],
+                                        'identifier' => [
+                                            'id' => 'id3',
+                                        ],
+                                        'types' => [],
+                                    ],
+                                    'return' => 1,
+                                ],
+                            ],
                         ]
                     ),
                     $resolver,
-                    $storageCache,
+                    $storageCacheMyEmbeddedModel,
                     $logger
                 );
             }
@@ -884,46 +1032,113 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
         /** @var MyModelRepository $repository */
         $repository = $container[MyModelRepository::class];
 
+        /** @var MyModel $model */
         $model = $repository->find('id1');
 
         $model->setName('name1');
+        $model->setOneToOne(null);
+        $model->setOneToMany([$model->getOneToMany()[0]]);
 
         $repository->persist($model);
 
-        self::assertCount(1, $storageCache->__data);
-        self::assertArrayHasKey('id1', $storageCache->__data);
+        self::assertCount(1, $storageCacheMyModel->__data);
+        self::assertArrayHasKey('id1', $storageCacheMyModel->__data);
         self::assertEquals([
             'id' => 'id1',
             'name' => 'name1',
             'category' => 'category1',
             'oneToOneId' => null,
-        ], $storageCache->__data['id1']);
+        ], $storageCacheMyModel->__data['id1']);
 
-        self::assertCount(4, $logger->__logs);
+        self::assertArrayHasKey('id1', $storageCacheMyEmbeddedModel->__data);
+        self::assertEquals([
+            'id' => 'id1',
+            'modelId' => 'id1',
+            'name' => 'name3'
+        ], $storageCacheMyEmbeddedModel->__data['id1']);
+
+        self::assertCount(17, $logger->__logs);
 
         self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
         self::assertSame('model: find row within table {table} with id {id}', $logger->__logs[0]['message']);
         self::assertSame(['table' => 'mymodels', 'id' => 'id1'], $logger->__logs[0]['context']);
+
         self::assertSame(LogLevel::INFO, $logger->__logs[1]['level']);
         self::assertSame('model: find row within table {table} with id {id}', $logger->__logs[1]['message']);
-        self::assertSame(['table' => 'mymodels', 'id' => 'id1'], $logger->__logs[1]['context']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id3'], $logger->__logs[1]['context']);
+
         self::assertSame(LogLevel::INFO, $logger->__logs[2]['level']);
-        self::assertSame('model: update row into table {table} with id {id}', $logger->__logs[2]['message']);
-        self::assertSame(['table' => 'mymodels', 'id' => 'id1'], $logger->__logs[2]['context']);
-        self::assertSame(LogLevel::INFO, $logger->__logs[3]['level']);
-        self::assertSame('model: find rows within table {table} with criteria {criteria}', $logger->__logs[3]['message']);
+        self::assertSame('model: find rows within table {table} with criteria {criteria}', $logger->__logs[2]['message']);
         self::assertSame([
             'table' => 'myembeddedmodels',
             'criteria' => ['modelId' => 'id1'],
             'orderBy' => null,
             'limit' => null,
             'offset' => null,
-        ], $logger->__logs[3]['context']);
+        ], $logger->__logs[2]['context']);
+
+        self::assertSame(LogLevel::INFO, $logger->__logs[3]['level']);
+        self::assertSame('model: find row within table {table} with id {id}', $logger->__logs[3]['message']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id2'], $logger->__logs[3]['context']);
+
+        self::assertSame(LogLevel::INFO, $logger->__logs[4]['level']);
+        self::assertSame('model: found row within cache for table {table} with id {id}', $logger->__logs[4]['message']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id2'], $logger->__logs[4]['context']);
+
+        self::assertSame(LogLevel::INFO, $logger->__logs[5]['level']);
+        self::assertSame('model: remove row from table {table} with id {id}', $logger->__logs[5]['message']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id2'], $logger->__logs[5]['context']);
+
+        self::assertSame(LogLevel::INFO, $logger->__logs[6]['level']);
+        self::assertSame('model: find row within table {table} with id {id}', $logger->__logs[6]['message']);
+        self::assertSame(['table' => 'mymodels', 'id' => 'id1'], $logger->__logs[6]['context']);
+
+        self::assertSame(LogLevel::INFO, $logger->__logs[7]['level']);
+        self::assertSame('model: found row within cache for table {table} with id {id}', $logger->__logs[7]['message']);
+        self::assertSame(['table' => 'mymodels', 'id' => 'id1'], $logger->__logs[7]['context']);
+
+        self::assertSame(LogLevel::INFO, $logger->__logs[8]['level']);
+        self::assertSame('model: update row into table {table} with id {id}', $logger->__logs[8]['message']);
+        self::assertSame(['table' => 'mymodels', 'id' => 'id1'], $logger->__logs[8]['context']);
+
+        self::assertSame(LogLevel::INFO, $logger->__logs[9]['level']);
+        self::assertSame('model: find row within table {table} with id {id}', $logger->__logs[9]['message']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id1'], $logger->__logs[9]['context']);
+
+        self::assertSame(LogLevel::INFO, $logger->__logs[10]['level']);
+        self::assertSame('model: found row within cache for table {table} with id {id}', $logger->__logs[10]['message']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id1'], $logger->__logs[10]['context']);
+
+        self::assertSame(LogLevel::INFO, $logger->__logs[11]['level']);
+        self::assertSame('model: update row into table {table} with id {id}', $logger->__logs[11]['message']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id1'], $logger->__logs[11]['context']);
+
+        self::assertSame(LogLevel::INFO, $logger->__logs[12]['level']);
+        self::assertSame('model: find row within table {table} with id {id}', $logger->__logs[12]['message']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id2'], $logger->__logs[12]['context']);
+
+        self::assertSame(LogLevel::INFO, $logger->__logs[13]['level']);
+        self::assertSame('model: remove row from table {table} with id {id}', $logger->__logs[13]['message']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id2'], $logger->__logs[13]['context']);
+
+        self::assertSame(LogLevel::INFO, $logger->__logs[14]['level']);
+        self::assertSame('model: find row within table {table} with id {id}', $logger->__logs[14]['message']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id3'], $logger->__logs[14]['context']);
+
+        self::assertSame(LogLevel::INFO, $logger->__logs[15]['level']);
+        self::assertSame('model: found row within cache for table {table} with id {id}', $logger->__logs[15]['message']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id3'], $logger->__logs[15]['context']);
+
+        self::assertSame(LogLevel::INFO, $logger->__logs[16]['level']);
+        self::assertSame('model: remove row from table {table} with id {id}', $logger->__logs[16]['message']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id3'], $logger->__logs[16]['context']);
     }
 
     /**
      * @covers \Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository::__construct
      * @covers \Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository::remove
+     * @covers \Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository::removeRelatedModels
+     * @covers \Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository::removeRelatedModel
      */
     public function testRemoveModel()
     {
@@ -934,25 +1149,48 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
             'oneToOneId' => null
         ];
 
-        $logger = $this->getLogger();
-        $storageCache = $this->getStorageCache();
+        $embeddedModelEntries = [
+            [
+                'id' => 'id1',
+                'modelId' => 'id1',
+                'name' => 'name3'
+            ],
+            [
+                'id' => 'id2',
+                'modelId' => 'id1',
+                'name' => 'name2'
+            ],
+            [
+                'id' => 'id3',
+                'modelId' => 'id1',
+                'name' => 'name1'
+            ],
+        ];
 
-        $myModelQueryBuilder = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, $modelEntry)]);
+        $logger = $this->getLogger();
+
+        $storageCacheMyModel = $this->getStorageCache();
+        $storageCacheMyEmbeddedModel = $this->getStorageCache();
+
+        $myModelQueryBuilder1 = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, $modelEntry)]);
+        $myModelQueryBuilder2 = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, false)]);
+
+        $myEmbeddedModelQueryBuilder = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, $embeddedModelEntries)]);
 
         $container = $this->getContainer(
-            function (Resolver $resolver) use ($storageCache, $logger, $myModelQueryBuilder) {
+            function (Resolver $resolver) use ($storageCacheMyModel, $logger, $myModelQueryBuilder1, $myModelQueryBuilder2) {
                 return new MyModelRepository(
                     $this->getConnection(
                         [
-                            'queryBuilder' => [$myModelQueryBuilder],
+                            'queryBuilder' => [$myModelQueryBuilder1, $myModelQueryBuilder2],
                             'delete' => [
                                 [
                                     'arguments' => [
-                                        'mymodels',
-                                        [
+                                        'tableExpression' => 'mymodels',
+                                        'identifier' => [
                                             'id' => 'id1',
                                         ],
-                                        [],
+                                        'types' => [],
                                     ],
                                     'return' => 1,
                                 ],
@@ -960,15 +1198,51 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
                         ]
                     ),
                     $resolver,
-                    $storageCache,
+                    $storageCacheMyModel,
                     $logger
                 );
             },
-            function (Resolver $resolver) use ($storageCache, $logger) {
+            function (Resolver $resolver) use ($storageCacheMyEmbeddedModel, $logger, $myEmbeddedModelQueryBuilder) {
                 return new MyEmbeddedRepository(
-                    $this->getConnection(),
+                    $this->getConnection(
+                        [
+                            'queryBuilder' => [$myEmbeddedModelQueryBuilder],
+                            'delete' => [
+                                [
+                                    'arguments' => [
+                                        'tableExpression' => 'myembeddedmodels',
+                                        'identifier' => [
+                                            'id' => 'id1',
+                                        ],
+                                        'types' => [],
+                                    ],
+                                    'return' => 1,
+                                ],
+                                [
+                                    'arguments' => [
+                                        'tableExpression' => 'myembeddedmodels',
+                                        'identifier' => [
+                                            'id' => 'id2',
+                                        ],
+                                        'types' => [],
+                                    ],
+                                    'return' => 1,
+                                ],
+                                [
+                                    'arguments' => [
+                                        'tableExpression' => 'myembeddedmodels',
+                                        'identifier' => [
+                                            'id' => 'id3',
+                                        ],
+                                        'types' => [],
+                                    ],
+                                    'return' => 1,
+                                ],
+                            ],
+                        ]
+                    ),
                     $resolver,
-                    $storageCache,
+                    $storageCacheMyEmbeddedModel,
                     $logger
                 );
             }
@@ -977,16 +1251,78 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
         /** @var MyModelRepository $repository */
         $repository = $container[MyModelRepository::class];
 
-        $model = MyModel::create('id1')->setName('name1')->setCategory('category1');
+        /** @var MyModel $model */
+        $model = $repository->find('id1');
 
         $repository->remove($model);
 
-        self::assertCount(0, $storageCache->__data);
+        self::assertCount(0, $storageCacheMyModel->__data);
 
-        self::assertCount(1, $logger->__logs);
+        self::assertCount(14, $logger->__logs);
+
         self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
-        self::assertSame('model: remove row from table {table} with id {id}', $logger->__logs[0]['message']);
+        self::assertSame('model: find row within table {table} with id {id}', $logger->__logs[0]['message']);
         self::assertSame(['table' => 'mymodels', 'id' => 'id1'], $logger->__logs[0]['context']);
+
+        self::assertSame(LogLevel::INFO, $logger->__logs[1]['level']);
+        self::assertSame('model: find row within table {table} with id {id}', $logger->__logs[1]['message']);
+        self::assertSame(['table' => 'mymodels', 'id' => 'id1'], $logger->__logs[1]['context']);
+
+        self::assertSame(LogLevel::INFO, $logger->__logs[2]['level']);
+        self::assertSame('model: found row within cache for table {table} with id {id}', $logger->__logs[2]['message']);
+        self::assertSame(['table' => 'mymodels', 'id' => 'id1'], $logger->__logs[2]['context']);
+
+        self::assertSame(LogLevel::INFO, $logger->__logs[3]['level']);
+        self::assertSame('model: remove row from table {table} with id {id}', $logger->__logs[3]['message']);
+        self::assertSame(['table' => 'mymodels', 'id' => 'id1'], $logger->__logs[3]['context']);
+
+        self::assertSame(LogLevel::INFO, $logger->__logs[4]['level']);
+        self::assertSame('model: find rows within table {table} with criteria {criteria}', $logger->__logs[4]['message']);
+        self::assertSame([
+            'table' => 'myembeddedmodels',
+            'criteria' => ['modelId' => 'id1'],
+            'orderBy' => null,
+            'limit' => null,
+            'offset' => null,
+        ], $logger->__logs[4]['context']);
+
+        self::assertSame(LogLevel::INFO, $logger->__logs[5]['level']);
+        self::assertSame('model: find row within table {table} with id {id}', $logger->__logs[5]['message']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id1'], $logger->__logs[5]['context']);
+
+        self::assertSame(LogLevel::INFO, $logger->__logs[6]['level']);
+        self::assertSame('model: found row within cache for table {table} with id {id}', $logger->__logs[6]['message']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id1'], $logger->__logs[6]['context']);
+
+        self::assertSame(LogLevel::INFO, $logger->__logs[7]['level']);
+        self::assertSame('model: remove row from table {table} with id {id}', $logger->__logs[7]['message']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id1'], $logger->__logs[7]['context']);
+
+        self::assertSame(LogLevel::INFO, $logger->__logs[8]['level']);
+        self::assertSame('model: find row within table {table} with id {id}', $logger->__logs[8]['message']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id2'], $logger->__logs[8]['context']);
+
+        self::assertSame(LogLevel::INFO, $logger->__logs[9]['level']);
+        self::assertSame('model: found row within cache for table {table} with id {id}', $logger->__logs[9]['message']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id2'], $logger->__logs[9]['context']);
+
+        self::assertSame(LogLevel::INFO, $logger->__logs[10]['level']);
+        self::assertSame('model: remove row from table {table} with id {id}', $logger->__logs[10]['message']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id2'], $logger->__logs[10]['context']);
+
+        self::assertSame(LogLevel::INFO, $logger->__logs[11]['level']);
+        self::assertSame('model: find row within table {table} with id {id}', $logger->__logs[11]['message']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id3'], $logger->__logs[11]['context']);
+
+        self::assertSame(LogLevel::INFO, $logger->__logs[12]['level']);
+        self::assertSame('model: found row within cache for table {table} with id {id}', $logger->__logs[12]['message']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id3'], $logger->__logs[12]['context']);
+
+        self::assertSame(LogLevel::INFO, $logger->__logs[13]['level']);
+        self::assertSame('model: remove row from table {table} with id {id}', $logger->__logs[13]['message']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id3'], $logger->__logs[13]['context']);
+
+        $repository->remove($model);
     }
 
     /**
@@ -1003,22 +1339,24 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
         ];
 
         $logger = $this->getLogger();
-        $storageCache = $this->getStorageCache([$modelEntry]);
+
+        $storageCacheMyModel = $this->getStorageCache([$modelEntry]);
+        $storageCacheMyEmbeddedModel = $this->getStorageCache();
 
         $container = $this->getContainer(
-            function (Resolver $resolver) use ($storageCache, $logger) {
+            function (Resolver $resolver) use ($storageCacheMyModel, $logger) {
                 return new MyModelRepository(
                     $this->getConnection(),
                     $resolver,
-                    $storageCache,
+                    $storageCacheMyModel,
                     $logger
                 );
             },
-            function (Resolver $resolver) use ($storageCache, $logger) {
+            function (Resolver $resolver) use ($storageCacheMyEmbeddedModel, $logger) {
                 return new MyEmbeddedRepository(
                     $this->getConnection(),
                     $resolver,
-                    $storageCache,
+                    $storageCacheMyEmbeddedModel,
                     $logger
                 );
             }
@@ -1027,11 +1365,11 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
         /** @var MyModelRepository $repository */
         $repository = $container[MyModelRepository::class];
 
-        self::assertCount(1, $storageCache->__data);
+        self::assertCount(1, $storageCacheMyModel->__data);
 
         $repository->clear();
 
-        self::assertCount(0, $storageCache->__data);
+        self::assertCount(0, $storageCacheMyModel->__data);
     }
 
     /**
