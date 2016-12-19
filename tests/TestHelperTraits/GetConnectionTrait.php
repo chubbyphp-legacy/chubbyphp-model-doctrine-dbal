@@ -134,8 +134,8 @@ trait GetConnectionTrait
                     );
 
                     self::assertSame($update['arguments']['tableExpression'], $tableExpression, sprintf('$updateStack at call %d, argument: tableExpression', $updateStackCounter));
-                    self::assertSame($update['arguments']['identifier'], $identifier, sprintf('$updateStack at call %d, argument: identifier', $updateStackCounter));
                     self::assertSame($update['arguments']['data'], $data, sprintf('$updateStack at call %d, argument: data', $updateStackCounter));
+                    self::assertSame($update['arguments']['identifier'], $identifier, sprintf('$updateStack at call %d, argument: identifier', $updateStackCounter));
                     self::assertSame($update['arguments']['types'], $types, sprintf('$updateStack at call %d, argument: types', $updateStackCounter));
 
                     return $update['return'];
