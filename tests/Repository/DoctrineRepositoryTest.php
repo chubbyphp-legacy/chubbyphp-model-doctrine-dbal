@@ -767,8 +767,9 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
     /**
      * @covers \Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository::__construct
      * @covers \Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository::persist
-     * @covers \Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository::persistReference
      * @covers \Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository::insert
+     * @covers \Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository::persistRelatedModels
+     * @covers \Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository::persistRelatedModel
      */
     public function testPersistWithNewModel()
     {
@@ -950,9 +951,9 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
     /**
      * @covers \Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository::__construct
      * @covers \Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository::persist
-     * @covers \Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository::persistReference
-     * @covers \Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository::persistCollection
+     * @covers \Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository::persistRelatedModels
      * @covers \Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository::persistRelatedModel
+     * @covers \Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository::removeRelatedModels
      * @covers \Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository::removeRelatedModel
      * @covers \Chubbyphp\Model\Doctrine\DBAL\Repository\AbstractDoctrineRepository::update
      */
@@ -987,29 +988,17 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
 
         $myEmbeddedModelQueryBuilder1 = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, $embeddedModelEntries[2])]);
         $myEmbeddedModelQueryBuilder2 = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, $embeddedModelEntries)]);
-        $myEmbeddedModelQueryBuilder3 = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, false)]);
 
         $connection = $this->getConnection(
             [
                 'queryBuilder' => [
                     $myModelQueryBuilder,
                     $myEmbeddedModelQueryBuilder1,
-                    $myEmbeddedModelQueryBuilder2,
-                    $myEmbeddedModelQueryBuilder3
+                    $myEmbeddedModelQueryBuilder2
                 ],
-                'beginTransaction' => 5,
-                'commit' => 5,
+                'beginTransaction' => 4,
+                'commit' => 4,
                 'delete' => [
-                    [
-                        'arguments' => [
-                            'tableExpression' => 'myembeddedmodels',
-                            'identifier' => [
-                                'id' => 'id3',
-                            ],
-                            'types' => [],
-                        ],
-                        'return' => 1,
-                    ],
                     [
                         'arguments' => [
                             'tableExpression' => 'myembeddedmodels',
@@ -1019,21 +1008,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
                             'types' => [],
                         ],
                         'return' => 1,
-                    ],
-                ],
-                'insert' => [
-                    [
-                        'arguments' => [
-                            'tableExpression' => 'myembeddedmodels',
-                            'data' => [
-                                'id' => 'id3',
-                                'modelId' => 'id1',
-                                'name' => 'name1'
-                            ],
-                            'types' => [],
-                        ],
-                        'return' => 1,
-                    ],
+                    ]
                 ],
                 'update' => [
                     [
@@ -1062,6 +1037,21 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
                             ],
                             'identifier' => [
                                 'id' => 'id1',
+                            ],
+                            'types' => [],
+                        ],
+                        'return' => 1,
+                    ],
+                    [
+                        'arguments' => [
+                            'tableExpression' => 'myembeddedmodels',
+                            'data' => [
+                                'id' => 'id3',
+                                'modelId' => 'id1',
+                                'name' => 'name1',
+                            ],
+                            'identifier' => [
+                                'id' => 'id3',
                             ],
                             'types' => [],
                         ],
@@ -1222,41 +1212,6 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
             $myEmbeddedModelQueryBuilder2->__calls
         );
 
-        self::assertEquals(
-            [
-                'select' => [
-                    [
-                        '*',
-                    ],
-                ],
-                'from' => [
-                    [
-                        'myembeddedmodels',
-                        null,
-                    ],
-                ],
-                'where' => [
-                    [
-                        [
-                            'method' => 'eq',
-                            'arguments' => [
-                                'id',
-                                ':id',
-                            ],
-                        ],
-                    ],
-                ],
-                'setParameter' => [
-                    [
-                        'id',
-                        'id3',
-                        null,
-                    ],
-                ],
-            ],
-            $myEmbeddedModelQueryBuilder3->__calls
-        );
-
         self::assertCount(1, $storageCacheMyModel->__data);
 
         self::assertArrayHasKey('id1', $storageCacheMyModel->__data);
@@ -1283,7 +1238,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
             'name' => 'name1'
         ], $storageCacheMyEmbeddedModel->__data['id3']);
 
-        self::assertCount(18, $logger->__logs);
+        self::assertCount(15, $logger->__logs);
 
         self::assertSame(LogLevel::INFO, $logger->__logs[0]['level']);
         self::assertSame('model: find row within table {table} with id {id}', $logger->__logs[0]['message']);
@@ -1305,63 +1260,51 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
 
         self::assertSame(LogLevel::INFO, $logger->__logs[3]['level']);
         self::assertSame('model: find row within table {table} with id {id}', $logger->__logs[3]['message']);
-        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id3'], $logger->__logs[3]['context']);
+        self::assertSame(['table' => 'mymodels', 'id' => 'id1'], $logger->__logs[3]['context']);
 
         self::assertSame(LogLevel::INFO, $logger->__logs[4]['level']);
         self::assertSame('model: found row within cache for table {table} with id {id}', $logger->__logs[4]['message']);
-        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id3'], $logger->__logs[4]['context']);
+        self::assertSame(['table' => 'mymodels', 'id' => 'id1'], $logger->__logs[4]['context']);
 
         self::assertSame(LogLevel::INFO, $logger->__logs[5]['level']);
-        self::assertSame('model: remove row from table {table} with id {id}', $logger->__logs[5]['message']);
-        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id3'], $logger->__logs[5]['context']);
+        self::assertSame('model: update row into table {table} with id {id}', $logger->__logs[5]['message']);
+        self::assertSame(['table' => 'mymodels', 'id' => 'id1'], $logger->__logs[5]['context']);
 
         self::assertSame(LogLevel::INFO, $logger->__logs[6]['level']);
         self::assertSame('model: find row within table {table} with id {id}', $logger->__logs[6]['message']);
-        self::assertSame(['table' => 'mymodels', 'id' => 'id1'], $logger->__logs[6]['context']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id1'], $logger->__logs[6]['context']);
 
         self::assertSame(LogLevel::INFO, $logger->__logs[7]['level']);
         self::assertSame('model: found row within cache for table {table} with id {id}', $logger->__logs[7]['message']);
-        self::assertSame(['table' => 'mymodels', 'id' => 'id1'], $logger->__logs[7]['context']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id1'], $logger->__logs[7]['context']);
 
         self::assertSame(LogLevel::INFO, $logger->__logs[8]['level']);
         self::assertSame('model: update row into table {table} with id {id}', $logger->__logs[8]['message']);
-        self::assertSame(['table' => 'mymodels', 'id' => 'id1'], $logger->__logs[8]['context']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id1'], $logger->__logs[8]['context']);
 
         self::assertSame(LogLevel::INFO, $logger->__logs[9]['level']);
         self::assertSame('model: find row within table {table} with id {id}', $logger->__logs[9]['message']);
-        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id1'], $logger->__logs[9]['context']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id3'], $logger->__logs[9]['context']);
 
         self::assertSame(LogLevel::INFO, $logger->__logs[10]['level']);
         self::assertSame('model: found row within cache for table {table} with id {id}', $logger->__logs[10]['message']);
-        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id1'], $logger->__logs[10]['context']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id3'], $logger->__logs[10]['context']);
 
         self::assertSame(LogLevel::INFO, $logger->__logs[11]['level']);
         self::assertSame('model: update row into table {table} with id {id}', $logger->__logs[11]['message']);
-        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id1'], $logger->__logs[11]['context']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id3'], $logger->__logs[11]['context']);
 
         self::assertSame(LogLevel::INFO, $logger->__logs[12]['level']);
         self::assertSame('model: find row within table {table} with id {id}', $logger->__logs[12]['message']);
-        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id3'], $logger->__logs[12]['context']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id2'], $logger->__logs[12]['context']);
 
-        self::assertSame(LogLevel::NOTICE, $logger->__logs[13]['level']);
-        self::assertSame('model: row within table {table} with id {id} not found', $logger->__logs[13]['message']);
-        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id3'], $logger->__logs[13]['context']);
+        self::assertSame(LogLevel::INFO, $logger->__logs[13]['level']);
+        self::assertSame('model: found row within cache for table {table} with id {id}', $logger->__logs[13]['message']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id2'], $logger->__logs[13]['context']);
 
         self::assertSame(LogLevel::INFO, $logger->__logs[14]['level']);
-        self::assertSame('model: insert row into table {table} with id {id}', $logger->__logs[14]['message']);
-        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id3'], $logger->__logs[14]['context']);
-
-        self::assertSame(LogLevel::INFO, $logger->__logs[15]['level']);
-        self::assertSame('model: find row within table {table} with id {id}', $logger->__logs[15]['message']);
-        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id2'], $logger->__logs[15]['context']);
-
-        self::assertSame(LogLevel::INFO, $logger->__logs[16]['level']);
-        self::assertSame('model: found row within cache for table {table} with id {id}', $logger->__logs[16]['message']);
-        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id2'], $logger->__logs[16]['context']);
-
-        self::assertSame(LogLevel::INFO, $logger->__logs[17]['level']);
-        self::assertSame('model: remove row from table {table} with id {id}', $logger->__logs[17]['message']);
-        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id2'], $logger->__logs[17]['context']);
+        self::assertSame('model: remove row from table {table} with id {id}', $logger->__logs[14]['message']);
+        self::assertSame(['table' => 'myembeddedmodels', 'id' => 'id2'], $logger->__logs[14]['context']);
     }
 
     /**

@@ -204,13 +204,34 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
 
         $this->connection->beginTransaction();
 
+        /** @var ModelInterface[] $toPersistModels */
+        $toPersistModels = [];
+
+        /** @var ModelInterface[] $toRemoveRelatedModels */
+        $toRemoveRelatedModels = [];
+
+        /** @var ModelCollectionInterface[] $modelCollections */
         $modelCollections = [];
+
         foreach ($row as $field => $value) {
             if ($value instanceof ModelCollectionInterface) {
                 $modelCollections[] = $value;
                 unset($row[$field]);
             } else if ($value instanceof ModelReferenceInterface) {
-                $row[$field.'Id'] = $this->persistReference($value);
+                $initialModel = $value->getInitialModel();
+                $model = $value->getModel();
+
+                if (null !== $initialModel && (null === $model || $model->getId() !== $initialModel->getId())) {
+                    $toRemoveRelatedModels[$initialModel->getId()] = $initialModel;
+                }
+
+                if (null !== $model) {
+                    $this->persistRelatedModel($model);
+                    $row[$field.'Id'] = $model->getId();
+                } else {
+                    $row[$field.'Id'] = null;
+                }
+
                 unset($row[$field]);
             }
         }
@@ -222,8 +243,23 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
         }
 
         foreach ($modelCollections as $modelCollection) {
-            $this->persistCollection($modelCollection);
+            $initialModels = $modelCollection->getInitialModels();
+            $models = $modelCollection->getModels();
+            
+            foreach ($initialModels as $initialModel) {
+                $toRemoveRelatedModels[$initialModel->getId()] = $initialModel;
+            }
+
+            foreach ($models as $model) {
+                if (isset($toRemoveRelatedModels[$model->getId()])) {
+                    unset($toRemoveRelatedModels[$model->getId()]);
+                }
+                $toPersistModels[$model->getId()] = $model;
+            }
         }
+
+        $this->persistRelatedModels($toPersistModels);
+        $this->removeRelatedModels($toRemoveRelatedModels);
 
         $this->storageCache->set($id, $row);
 
@@ -257,7 +293,7 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
 
         foreach ($row as $field => $value) {
             if ($value instanceof ModelCollectionInterface) {
-                $this->removeRelatedModels($value);
+                $this->removeRelatedModels($value->getInitialModels());
             } else if ($value instanceof ModelReferenceInterface) {
                 if (null !== $initialModel = $value->getInitialModel()) {
                     $this->removeRelatedModel($initialModel);
@@ -317,44 +353,12 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
     }
 
     /**
-     * @param ModelReferenceInterface $reference
-     * @return null|string
+     * @param ModelInterface[]|array $toRemoveRelatedModels
      */
-    private function persistReference(ModelReferenceInterface $reference)
+    private function persistRelatedModels(array $toRemoveRelatedModels)
     {
-        $initialModel = $reference->getInitialModel();
-        $model = $reference->getModel();
-
-        if (null !== $initialModel && (null === $model || $model->getId() !== $initialModel->getId())) {
-            $this->removeRelatedModel($initialModel);
-        }
-
-        if (null !== $model) {
-            $this->persistRelatedModel($model);
-
-            return $model->getId();
-        }
-
-        return null;
-    }
-
-    /**
-     * @param ModelCollectionInterface $modelCollection
-     */
-    private function persistCollection(ModelCollectionInterface $modelCollection)
-    {
-        $initialModels = $modelCollection->getInitialModels();
-        $models = $modelCollection->getModels();
-
-        foreach ($models as $model) {
-            $this->persistRelatedModel($model);
-            if (isset($initialModels[$model->getId()])) {
-                unset($initialModels[$model->getId()]);
-            }
-        }
-
-        foreach ($initialModels as $initialModel) {
-            $this->removeRelatedModel($initialModel);
+        foreach ($toRemoveRelatedModels as $toRemoveRelatedModel) {
+            $this->persistRelatedModel($toRemoveRelatedModel);
         }
     }
 
@@ -367,12 +371,12 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
     }
 
     /**
-     * @param ModelCollectionInterface $modelCollection
+     * @param ModelInterface[]|array $toRemoveRelatedModels
      */
-    private function removeRelatedModels(ModelCollectionInterface $modelCollection)
+    private function removeRelatedModels(array $toRemoveRelatedModels)
     {
-        foreach ($modelCollection->getInitialModels() as $initialModel) {
-            $this->removeRelatedModel($initialModel);
+        foreach ($toRemoveRelatedModels as $toRemoveRelatedModel) {
+            $this->removeRelatedModel($toRemoveRelatedModel);
         }
     }
 
