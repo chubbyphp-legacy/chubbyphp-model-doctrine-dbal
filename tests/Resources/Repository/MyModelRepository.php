@@ -29,11 +29,11 @@ final class MyModelRepository extends AbstractDoctrineRepository
     protected function fromPersistence(array $row): ModelInterface
     {
         $row['oneToOne'] = new LazyModelReference(
-            $this->resolver->lazyFind(MyEmbeddedModel::class, $row['oneToOneId'])
+            $this->resolver, MyEmbeddedModel::class, $row['oneToOneId']
         );
 
         $row['oneToMany'] = new LazyModelCollection(
-            $this->resolver->lazyFindBy(MyEmbeddedModel::class, ['modelId' => $row['id']])
+            $this->resolver, MyEmbeddedModel::class, 'modelId', $row['id'], ['name' => 'ASC']
         );
 
         return MyModel::fromPersistence($row);

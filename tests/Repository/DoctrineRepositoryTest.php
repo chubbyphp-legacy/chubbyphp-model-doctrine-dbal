@@ -806,7 +806,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
                         'tableExpression' => 'myembeddedmodels',
                         'data' => [
                             'id' => 'id1',
-                            'modelId' => 'id1',
+                            'modelId' => null,
                             'name' => 'name1'
                         ],
                         'types' => [],
