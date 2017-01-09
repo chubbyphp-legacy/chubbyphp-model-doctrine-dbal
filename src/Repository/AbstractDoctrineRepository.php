@@ -7,6 +7,7 @@ namespace Chubbyphp\Model\Doctrine\DBAL\Repository;
 use Chubbyphp\Model\Collection\ModelCollectionInterface;
 use Chubbyphp\Model\ModelInterface;
 use Chubbyphp\Model\Reference\ModelReferenceInterface;
+use Chubbyphp\Model\RelatedModelManipulationStack;
 use Chubbyphp\Model\RepositoryInterface;
 use Chubbyphp\Model\ResolverInterface;
 use Chubbyphp\Model\StorageCache\NullStorageCache;
@@ -217,7 +218,7 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
                 $stack->addToRemoveModels($value->getInitialModels());
                 $stack->addToPersistModels($value->getModels());
                 unset($row[$field]);
-            } else if ($value instanceof ModelReferenceInterface) {
+            } elseif ($value instanceof ModelReferenceInterface) {
                 $row[$field.'Id'] = $this->persistModelReference($value, $stack);
 
                 unset($row[$field]);
@@ -265,7 +266,7 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
         foreach ($row as $field => $value) {
             if ($value instanceof ModelCollectionInterface) {
                 $this->removeRelatedModels($value->getInitialModels());
-            } else if ($value instanceof ModelReferenceInterface) {
+            } elseif ($value instanceof ModelReferenceInterface) {
                 if (null !== $initialModel = $value->getInitialModel()) {
                     $this->removeRelatedModel($initialModel);
                 }
@@ -339,7 +340,7 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
         foreach ($row as $field => $value) {
             if ($value instanceof ModelCollectionInterface) {
                 unset($row[$field]);
-            } else if ($value instanceof ModelReferenceInterface) {
+            } elseif ($value instanceof ModelReferenceInterface) {
                 $row[$field.'Id'] = null;
                 $gotReference = true;
                 unset($row[$field]);
