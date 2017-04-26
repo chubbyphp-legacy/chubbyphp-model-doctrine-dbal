@@ -2,7 +2,7 @@
 
 #### CreateDatabaseCommand
 
-```{.php}
+```php
 <?php
 
 use Chubbyphp\Lazy\LazyCommand;
@@ -32,7 +32,7 @@ $console->run($input);
 
 #### RunSqlCommand
 
-```{.php}
+```php
 <?php
 
 use Chubbyphp\Lazy\LazyCommand;
@@ -68,7 +68,7 @@ $console->run($input);
 
 #### SchemaUpdateCommand
 
-```{.php}
+```php
 <?php
 
 use Chubbyphp\Lazy\LazyCommand;

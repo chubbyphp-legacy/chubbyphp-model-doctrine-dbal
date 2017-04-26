@@ -4,6 +4,7 @@
 [![Total Downloads](https://poser.pugx.org/chubbyphp/chubbyphp-model-doctrine-dbal/downloads.png)](https://packagist.org/packages/chubbyphp/chubbyphp-model-doctrine-dbal)
 [![Latest Stable Version](https://poser.pugx.org/chubbyphp/chubbyphp-model-doctrine-dbal/v/stable.png)](https://packagist.org/packages/chubbyphp/chubbyphp-model-doctrine-dbal)
 [![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/chubbyphp/chubbyphp-model-doctrine-dbal/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/chubbyphp/chubbyphp-model-doctrine-dbal/?branch=master)
+[![Code Coverage](https://scrutinizer-ci.com/g/chubbyphp/chubbyphp-model-doctrine-dbal/badges/coverage.png?b=master)](https://scrutinizer-ci.com/g/chubbyphp/chubbyphp-model-doctrine-dbal/?branch=master)
 
 ## Description
 
@@ -25,6 +26,10 @@ A simple [chubbyphp/chubbyphp-model][2] implementation for relational databases 
 ## Installation
 
 Through [Composer](http://getcomposer.org) as [chubbyphp/chubbyphp-model-doctrine-dbal][1].
+
+```sh
+composer require chubbyphp/chubbyphp-model-doctrine-dbal "~1.0@dev"
+```
 
 ## Usage
 

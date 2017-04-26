@@ -2,7 +2,7 @@
 
 #### MyModel
 
-```{.php}
+```php
 <?php
 
 declare(strict_types=1);
@@ -190,7 +190,7 @@ final class MyModel implements ModelInterface
 
 #### MyEmbeddedModel
 
-```{.php}
+```php
 <?php
 
 declare(strict_types=1);
