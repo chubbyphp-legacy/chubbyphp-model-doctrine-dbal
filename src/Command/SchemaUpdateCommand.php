@@ -14,12 +14,12 @@ final class SchemaUpdateCommand
     /**
      * @var Connection
      */
-    protected $connection;
+    private $connection;
 
     /**
      * @var
      */
-    protected $schemaPath;
+    private $schemaPath;
 
     /**
      * @param Connection $connection

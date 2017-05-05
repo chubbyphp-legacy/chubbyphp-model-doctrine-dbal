@@ -331,7 +331,8 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
 
     /**
      * @param string $id
-     * @param array $row
+     * @param array  $row
+     *
      * @return bool
      */
     private function callbackIfReference(string $id, array $row, \Closure $callback): bool
@@ -357,8 +358,9 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
     }
 
     /**
-     * @param ModelReferenceInterface $reference
+     * @param ModelReferenceInterface       $reference
      * @param RelatedModelManipulationStack $stack
+     *
      * @return null|string
      */
     private function persistModelReference(ModelReferenceInterface $reference, RelatedModelManipulationStack $stack)

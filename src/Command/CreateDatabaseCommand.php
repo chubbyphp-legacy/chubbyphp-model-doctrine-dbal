@@ -22,7 +22,7 @@ final class CreateDatabaseCommand
     /**
      * @var Connection
      */
-    protected $connection;
+    private $connection;
 
     /**
      * @param Connection $connection

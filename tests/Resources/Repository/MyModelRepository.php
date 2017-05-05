@@ -15,6 +15,7 @@ final class MyModelRepository extends AbstractDoctrineRepository
 {
     /**
      * @param string $modelClass
+     *
      * @return bool
      */
     public function isResponsible(string $modelClass): bool
@@ -24,6 +25,7 @@ final class MyModelRepository extends AbstractDoctrineRepository
 
     /**
      * @param array $row
+     *
      * @return MyModel|ModelInterface
      */
     protected function fromPersistence(array $row): ModelInterface

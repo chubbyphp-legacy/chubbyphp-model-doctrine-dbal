@@ -69,7 +69,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
             'id' => 'id1',
             'name' => 'name3',
             'category' => 'category1',
-            'oneToOneId' => null
+            'oneToOneId' => null,
         ];
 
         $connection = $this->getConnection();
@@ -129,7 +129,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
             'id' => 'id1',
             'name' => 'name3',
             'category' => 'category1',
-            'oneToOneId' => null
+            'oneToOneId' => null,
         ];
 
         $myModelQueryBuilder = $this->getQueryBuilder([$this->getStatement(\PDO::FETCH_ASSOC, $modelEntry)]);
@@ -313,7 +313,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
                 'id' => 'id1',
                 'name' => 'name3',
                 'category' => 'category1',
-                'oneToOneId' => null
+                'oneToOneId' => null,
             ],
         ];
 
@@ -550,7 +550,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
                 'id' => 'id1',
                 'name' => 'name3',
                 'category' => 'category1',
-                'oneToOneId' => null
+                'oneToOneId' => null,
             ],
         ];
 
@@ -795,7 +795,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
                             'id' => 'id1',
                             'name' => 'name1',
                             'category' => 'category1',
-                            'oneToOneId' => null
+                            'oneToOneId' => null,
                         ],
                         'types' => [],
                     ],
@@ -807,7 +807,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
                         'data' => [
                             'id' => 'id1',
                             'modelId' => null,
-                            'name' => 'name1'
+                            'name' => 'name1',
                         ],
                         'types' => [],
                     ],
@@ -822,7 +822,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
                             'id' => 'id1',
                             'name' => 'name1',
                             'category' => 'category1',
-                            'oneToOneId' => 'id1'
+                            'oneToOneId' => 'id1',
                         ],
                         'identifier' => [
                             'id' => 'id1',
@@ -988,24 +988,24 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
             'id' => 'id1',
             'name' => 'name3',
             'category' => 'category1',
-            'oneToOneId' => 'id3'
+            'oneToOneId' => 'id3',
         ];
 
         $embeddedModelEntries = [
             [
                 'id' => 'id3',
                 'modelId' => 'id1',
-                'name' => 'name1'
+                'name' => 'name1',
             ],
             [
                 'id' => 'id2',
                 'modelId' => 'id1',
-                'name' => 'name2'
+                'name' => 'name2',
             ],
             [
                 'id' => 'id1',
                 'modelId' => 'id1',
-                'name' => 'name3'
+                'name' => 'name3',
             ],
         ];
 
@@ -1019,7 +1019,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
                 'queryBuilder' => [
                     $myModelQueryBuilder,
                     $myEmbeddedModelQueryBuilder1,
-                    $myEmbeddedModelQueryBuilder2
+                    $myEmbeddedModelQueryBuilder2,
                 ],
                 'beginTransaction' => 4,
                 'commit' => 4,
@@ -1033,7 +1033,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
                             'types' => [],
                         ],
                         'return' => 1,
-                    ]
+                    ],
                 ],
                 'update' => [
                     [
@@ -1043,7 +1043,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
                                 'id' => 'id1',
                                 'name' => 'name1',
                                 'category' => 'category1',
-                                'oneToOneId' => null
+                                'oneToOneId' => null,
                             ],
                             'identifier' => [
                                 'id' => 'id1',
@@ -1192,7 +1192,6 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
             $myEmbeddedModelQueryBuilder1->__calls
         );
 
-
         self::assertEquals(
             [
                 'select' => [
@@ -1235,8 +1234,8 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
                     ],
                 ],
                 'addOrderBy' => [
-                    ['name', 'ASC']
-                ]
+                    ['name', 'ASC'],
+                ],
             ],
             $myEmbeddedModelQueryBuilder2->__calls
         );
@@ -1257,14 +1256,14 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
         self::assertEquals([
             'id' => 'id1',
             'modelId' => 'id1',
-            'name' => 'name3'
+            'name' => 'name3',
         ], $storageCacheMyEmbeddedModel->__data['id1']);
 
         self::assertArrayHasKey('id3', $storageCacheMyEmbeddedModel->__data);
         self::assertEquals([
             'id' => 'id3',
             'modelId' => 'id1',
-            'name' => 'name1'
+            'name' => 'name1',
         ], $storageCacheMyEmbeddedModel->__data['id3']);
 
         self::assertCount(15, $logger->__logs);
@@ -1350,24 +1349,24 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
             'id' => 'id1',
             'name' => 'name3',
             'category' => 'category1',
-            'oneToOneId' => null
+            'oneToOneId' => null,
         ];
 
         $embeddedModelEntries = [
             [
                 'id' => 'id3',
                 'modelId' => 'id1',
-                'name' => 'name1'
+                'name' => 'name1',
             ],
             [
                 'id' => 'id2',
                 'modelId' => 'id1',
-                'name' => 'name2'
+                'name' => 'name2',
             ],
             [
                 'id' => 'id1',
                 'modelId' => 'id1',
-                'name' => 'name3'
+                'name' => 'name3',
             ],
         ];
 
@@ -1430,7 +1429,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
                                 'id' => 'id1',
                                 'name' => 'name3',
                                 'category' => 'category1',
-                                'oneToOneId' => null
+                                'oneToOneId' => null,
                             ],
                             'identifier' => [
                                 'id' => 'id1',
@@ -1439,7 +1438,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
                         ],
                         'return' => 1,
                     ],
-                ]
+                ],
             ]
         );
 
@@ -1559,7 +1558,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
             'id' => 'id1',
             'name' => 'name3',
             'category' => 'category1',
-            'oneToOneId' => null
+            'oneToOneId' => null,
         ];
 
         $connnection = $this->getConnection();
@@ -1601,6 +1600,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
     /**
      * @param \Closure $myRepositoryService
      * @param \Closure $myEmbeddedRepositoryService
+     *
      * @return Container
      */
     private function getContainer(\Closure $myRepositoryService, \Closure $myEmbeddedRepositoryService): Container
@@ -1610,7 +1610,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
         $container['resolver'] = function () use ($container) {
             return new Resolver($this->getInteropContainer($container), [
                 MyModelRepository::class,
-                MyEmbeddedRepository::class
+                MyEmbeddedRepository::class,
             ]);
         };
 
@@ -1627,6 +1627,7 @@ final class DoctrineRepositoryTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @param Container $container
+     *
      * @return ContainerInterface
      */
     private function getInteropContainer(Container $container): ContainerInterface
