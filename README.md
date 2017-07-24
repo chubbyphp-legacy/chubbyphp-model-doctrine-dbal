@@ -13,7 +13,7 @@ A simple [chubbyphp/chubbyphp-model][2] implementation for relational databases 
 ## Requirements
 
  * php: ~7.0
- * chubbyphp/chubbyphp-model: ~2.0
+ * chubbyphp/chubbyphp-model: ~3.0
  * container-interop/container-interop: ~1.1
  * doctrine/common: ~2.5
  * doctrine/dbal: ~2.5
