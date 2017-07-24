@@ -28,7 +28,7 @@ A simple [chubbyphp/chubbyphp-model][2] implementation for relational databases 
 Through [Composer](http://getcomposer.org) as [chubbyphp/chubbyphp-model-doctrine-dbal][1].
 
 ```sh
-composer require chubbyphp/chubbyphp-model-doctrine-dbal "~1.0@dev"
+composer require chubbyphp/chubbyphp-model-doctrine-dbal "~1.0"
 ```
 
 ## Usage
