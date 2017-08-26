@@ -231,8 +231,8 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
             $this->update($id, $row);
         }
 
-        $this->persistRelatedModels($stack->getToPersistModels());
         $this->removeRelatedModels($stack->getToRemoveModels());
+        $this->persistRelatedModels($stack->getToPersistModels());
 
         $this->storageCache->set($id, $row);
 
