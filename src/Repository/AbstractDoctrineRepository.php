@@ -345,7 +345,7 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
             }
         }
 
-        if ($gotReference && $callback) {
+        if ($gotReference) {
             $callback($id, $row);
 
             return true;
