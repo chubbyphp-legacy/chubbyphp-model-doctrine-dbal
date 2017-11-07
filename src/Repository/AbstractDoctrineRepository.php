@@ -205,11 +205,7 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
 
         $this->connection->beginTransaction();
 
-        if (!$alreadyExists = (bool) $this->find($id)) {
-            $alreadyExists = $this->callbackIfReference($id, $row, function (string $id, array $row) {
-                $this->insert($id, $row);
-            });
-        }
+        $alreadyExists = (bool) $this->find($id);
 
         $stack = new RelatedModelManipulationStack();
 
@@ -332,6 +328,7 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
     /**
      * @param string $id
      * @param array  $row
+     * @param \Closure $callback
      *
      * @return bool
      */
@@ -348,7 +345,7 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
             }
         }
 
-        if ($gotReference) {
+        if ($gotReference && $callback) {
             $callback($id, $row);
 
             return true;
