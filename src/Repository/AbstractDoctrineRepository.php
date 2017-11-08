@@ -255,10 +255,6 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
 
         $row = $model->toPersistence();
 
-        $this->callbackIfReference($id, $row, function (string $id, array $row) {
-            $this->update($id, $row);
-        });
-
         foreach ($row as $field => $value) {
             if ($value instanceof ModelCollectionInterface) {
                 $this->removeRelatedModels($value->getInitialModels());
@@ -323,35 +319,6 @@ abstract class AbstractDoctrineRepository implements RepositoryInterface
         );
 
         $this->connection->update($table, $row, ['id' => $id]);
-    }
-
-    /**
-     * @param string $id
-     * @param array  $row
-     * @param \Closure $callback
-     *
-     * @return bool
-     */
-    private function callbackIfReference(string $id, array $row, \Closure $callback): bool
-    {
-        $gotReference = false;
-        foreach ($row as $field => $value) {
-            if ($value instanceof ModelCollectionInterface) {
-                unset($row[$field]);
-            } elseif ($value instanceof ModelReferenceInterface) {
-                $row[$field.'Id'] = null;
-                $gotReference = true;
-                unset($row[$field]);
-            }
-        }
-
-        if ($gotReference) {
-            $callback($id, $row);
-
-            return true;
-        }
-
-        return false;
     }
 
     /**
