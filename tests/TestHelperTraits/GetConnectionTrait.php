@@ -12,8 +12,6 @@ use Doctrine\DBAL\Schema\Schema;
 
 trait GetConnectionTrait
 {
-    trait GetConnectionTrait
-{
     /**
      * @param array $stacks
      *
