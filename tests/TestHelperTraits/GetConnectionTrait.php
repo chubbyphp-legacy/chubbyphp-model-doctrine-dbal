@@ -12,6 +12,8 @@ use Doctrine\DBAL\Schema\Schema;
 
 trait GetConnectionTrait
 {
+    trait GetConnectionTrait
+{
     /**
      * @param array $stacks
      *
@@ -27,6 +29,7 @@ trait GetConnectionTrait
                 'createQueryBuilder',
                 'beginTransaction',
                 'commit',
+                'rollBack',
                 'insert',
                 'update',
                 'delete',
@@ -42,6 +45,7 @@ trait GetConnectionTrait
         $queryBuilderStack = $stacks['queryBuilder'] ?? [];
         $beginTransaction = $stacks['beginTransaction'] ?? 0;
         $commit = $stacks['commit'] ?? 0;
+        $rollBack = $stacks['rollBack'] ?? 0;
         $insertStack = $stacks['insert'] ?? [];
         $updateStack = $stacks['update'] ?? [];
         $deleteStack = $stacks['delete'] ?? [];
@@ -52,24 +56,11 @@ trait GetConnectionTrait
         $databasePlatform = $stacks['databasePlatform'] ?? null;
         $params = $stacks['params'] ?? [];
 
-        $queryBuilderCounter = 0;
-
         $connection
-            ->expects(self::any())
+            ->expects(self::exactly(count($queryBuilderStack)))
             ->method('createQueryBuilder')
-            ->willReturnCallback(function () use (&$queryBuilderStack, &$queryBuilderCounter) {
-                ++$queryBuilderCounter;
-
-                $queryBuilder = array_shift($queryBuilderStack);
-
-                self::assertNotNull($queryBuilder,
-                    sprintf(
-                        'createQueryBuilder failed, cause there was no data within $queryBuilderStack at call %d',
-                        $queryBuilderCounter
-                    )
-                );
-
-                return $queryBuilder;
+            ->willReturnCallback(function () use (&$queryBuilderStack) {
+                return array_shift($queryBuilderStack);
             });
 
         $connection
@@ -80,40 +71,36 @@ trait GetConnectionTrait
             ->expects(self::exactly($commit))
             ->method('commit');
 
-        $insertStackCounter = 0;
+        $connection
+            ->expects(self::exactly($rollBack))
+            ->method('rollBack');
 
         $connection
-            ->expects(self::any())
+            ->expects(self::exactly(count($insertStack)))
             ->method('insert')
             ->willReturnCallback(
                 function (
                     $tableExpression,
                     array $data,
                     array $types = []
-                ) use (&$insertStack, &$insertStackCounter) {
-                    ++$insertStackCounter;
-
+                ) use (&$insertStack) {
+                    $insertKey = key($insertStack);
                     $insert = array_shift($insertStack);
 
-                    self::assertNotNull($insert,
-                        sprintf(
-                            'insert failed, cause there was no data within $insertStack at call %d',
-                            $insertStackCounter
-                        )
-                    );
+                    self::assertSame($insert['arguments']['tableExpression'], $tableExpression, sprintf('$insertStack at call %d, argument: tableExpression', $insertKey));
+                    self::assertSame($insert['arguments']['data'], $data, sprintf('$insertStack at call %d, argument: data', $insertKey));
+                    self::assertSame($insert['arguments']['types'], $types, sprintf('$insertStack at call %d, argument: types', $insertKey));
 
-                    self::assertSame($insert['arguments']['tableExpression'], $tableExpression, sprintf('$insertStack at call %d, argument: tableExpression', $insertStackCounter));
-                    self::assertSame($insert['arguments']['data'], $data, sprintf('$insertStack at call %d, argument: data', $insertStackCounter));
-                    self::assertSame($insert['arguments']['types'], $types, sprintf('$insertStack at call %d, argument: types', $insertStackCounter));
+                    if (isset($insert['exception'])) {
+                        throw $insert['exception'];
+                    }
 
                     return $insert['return'];
                 }
             );
 
-        $updateStackCounter = 0;
-
         $connection
-            ->expects(self::any())
+            ->expects(self::exactly(count($updateStack)))
             ->method('update')
             ->willReturnCallback(
                 function (
@@ -121,121 +108,72 @@ trait GetConnectionTrait
                     array $data,
                     array $identifier,
                     array $types = []
-                ) use (&$updateStack, &$updateStackCounter) {
-                    ++$updateStackCounter;
-
+                ) use (&$updateStack) {
+                    $updateKey = key($updateStack);
                     $update = array_shift($updateStack);
 
-                    self::assertNotNull($update,
-                        sprintf(
-                            'update failed, cause there was no data within $updateStack at call %d',
-                            $updateStackCounter
-                        )
-                    );
-
-                    self::assertSame($update['arguments']['tableExpression'], $tableExpression, sprintf('$updateStack at call %d, argument: tableExpression', $updateStackCounter));
-                    self::assertSame($update['arguments']['data'], $data, sprintf('$updateStack at call %d, argument: data', $updateStackCounter));
-                    self::assertSame($update['arguments']['identifier'], $identifier, sprintf('$updateStack at call %d, argument: identifier', $updateStackCounter));
-                    self::assertSame($update['arguments']['types'], $types, sprintf('$updateStack at call %d, argument: types', $updateStackCounter));
+                    self::assertSame($update['arguments']['tableExpression'], $tableExpression, sprintf('$updateStack at call %d, argument: tableExpression', $updateKey));
+                    self::assertSame($update['arguments']['data'], $data, sprintf('$updateStack at call %d, argument: data', $updateKey));
+                    self::assertSame($update['arguments']['identifier'], $identifier, sprintf('$updateStack at call %d, argument: identifier', $updateKey));
+                    self::assertSame($update['arguments']['types'], $types, sprintf('$updateStack at call %d, argument: types', $updateKey));
 
                     return $update['return'];
                 }
             );
 
-        $deleteStackCounter = 0;
-
         $connection
-            ->expects(self::any())
+            ->expects(self::exactly(count($deleteStack)))
             ->method('delete')
             ->willReturnCallback(
                 function (
                     $tableExpression,
                     array $identifier,
                     array $types = []
-                ) use (&$deleteStack, &$deleteStackCounter) {
-                    ++$deleteStackCounter;
-
+                ) use (&$deleteStack) {
+                    $deleteKey = key($deleteStack);
                     $delete = array_shift($deleteStack);
 
-                    self::assertNotNull($delete,
-                        sprintf(
-                            'delete failed, cause there was no data within $deleteStack at call %d',
-                            $deleteStackCounter
-                        )
-                    );
-
-                    self::assertSame($delete['arguments']['tableExpression'], $tableExpression, sprintf('$deleteStack at call %d, argument: tableExpression', $deleteStackCounter));
-                    self::assertSame($delete['arguments']['identifier'], $identifier, sprintf('$deleteStack at call %d, argument: identifier', $deleteStackCounter));
-                    self::assertSame($delete['arguments']['types'], $types, sprintf('$deleteStack at call %d, argument: types', $deleteStackCounter));
+                    self::assertSame($delete['arguments']['tableExpression'], $tableExpression, sprintf('$deleteStack at call %d, argument: tableExpression', $deleteKey));
+                    self::assertSame($delete['arguments']['identifier'], $identifier, sprintf('$deleteStack at call %d, argument: identifier', $deleteKey));
+                    self::assertSame($delete['arguments']['types'], $types, sprintf('$deleteStack at call %d, argument: types', $deleteKey));
 
                     return $delete['return'];
                 }
             );
 
-        $fetchAllCounter = 0;
-
         $connection
-            ->expects(self::any())
+            ->expects(self::exactly(count($fetchAllStack)))
             ->method('fetchAll')
-            ->willReturnCallback(function ($sql, array $params = array(), $types = array()) use (&$fetchAllStack, &$fetchAllCounter) {
-                ++$fetchAllCounter;
-
+            ->willReturnCallback(function ($sql, array $params = array(), $types = array()) use (&$fetchAllStack) {
+                $fetchAllKey = key($fetchAllStack);
                 $fetchAll = array_shift($fetchAllStack);
 
-                self::assertNotNull($fetchAll,
-                    sprintf(
-                        'fetchAll failed, cause there was no data within $fetchAllStack at call %d',
-                        $fetchAllCounter
-                    )
-                );
-
-                self::assertSame($fetchAll['arguments']['sql'], $sql, sprintf('$fetchAllStack at call %d, argument: sql', $fetchAllCounter));
-                self::assertSame($fetchAll['arguments']['params'], $params, sprintf('$fetchAllStack at call %d, argument: params', $fetchAllCounter));
-                self::assertSame($fetchAll['arguments']['types'], $types, sprintf('$fetchAllStack at call %d, argument: types', $fetchAllCounter));
+                self::assertSame($fetchAll['arguments']['sql'], $sql, sprintf('$fetchAllStack at call %d, argument: sql', $fetchAllKey));
+                self::assertSame($fetchAll['arguments']['params'], $params, sprintf('$fetchAllStack at call %d, argument: params', $fetchAllKey));
+                self::assertSame($fetchAll['arguments']['types'], $types, sprintf('$fetchAllStack at call %d, argument: types', $fetchAllKey));
 
                 return $fetchAll['return'];
             });
 
-        $executeUpdateCounter = 0;
-
         $connection
             ->expects(self::any())
             ->method('executeUpdate')
-            ->willReturnCallback(function ($sql, array $params = array(), $types = array()) use (&$executeUpdateStack, &$executeUpdateCounter) {
-                ++$executeUpdateCounter;
-
+            ->willReturnCallback(function ($sql, array $params = array(), $types = array()) use (&$executeUpdateStack) {
+                $executeUpdateKey = key($executeUpdateStack);
                 $executeUpdate = array_shift($executeUpdateStack);
 
-                self::assertNotNull($executeUpdate,
-                    sprintf(
-                        'executeUpdate failed, cause there was no data within $executeUpdateStack at call %d',
-                        $executeUpdateCounter
-                    )
-                );
-
-                self::assertSame($executeUpdate['arguments']['sql'], $sql, sprintf('$executeUpdateStack at call %d, argument: sql', $executeUpdateCounter));
-                self::assertSame($executeUpdate['arguments']['params'], $params, sprintf('$executeUpdateStack at call %d, argument: params', $executeUpdateCounter));
-                self::assertSame($executeUpdate['arguments']['types'], $types, sprintf('$executeUpdateStack at call %d, argument: types', $executeUpdateCounter));
+                self::assertSame($executeUpdate['arguments']['sql'], $sql, sprintf('$executeUpdateStack at call %d, argument: sql', $executeUpdateKey));
+                self::assertSame($executeUpdate['arguments']['params'], $params, sprintf('$executeUpdateStack at call %d, argument: params', $executeUpdateKey));
+                self::assertSame($executeUpdate['arguments']['types'], $types, sprintf('$executeUpdateStack at call %d, argument: types', $executeUpdateKey));
 
                 return $executeUpdate['return'];
             });
 
-        $execCounter = 0;
-
         $connection
             ->expects(self::any())
             ->method('exec')
-            ->willReturnCallback(function ($sql) use (&$execStack, &$execCounter) {
-                ++$execCounter;
-
+            ->willReturnCallback(function ($sql) use (&$execStack) {
                 $exec = array_shift($execStack);
-
-                self::assertNotNull($exec,
-                    sprintf(
-                        'exec failed, cause there was no data within $execStack at call %d',
-                        $execCounter
-                    )
-                );
 
                 self::assertSame($exec['arguments'][0], $sql);
 
@@ -336,22 +274,11 @@ trait GetConnectionTrait
                 return $this->getExpressionBuilder();
             });
 
-        $executeStackCounter = 0;
-
         $queryBuilder
-            ->expects(self::any())
+            ->expects(self::exactly(count($executeStack)))
             ->method('execute')
-            ->willReturnCallback(function () use ($queryBuilder, &$executeStack, &$executeStackCounter) {
-                ++$executeStackCounter;
-
+            ->willReturnCallback(function () use (&$executeStack) {
                 $execute = array_shift($executeStack);
-
-                self::assertNotNull($execute,
-                    sprintf(
-                        'execute failed, cause there was no data within $executeStack at call %d',
-                        $executeStackCounter
-                    )
-                );
 
                 return $execute;
             });
@@ -571,5 +498,14 @@ trait GetConnectionTrait
             });
 
         return $platform;
+    }
+
+    /**
+     * @param MockObject $mock
+     * @return array
+     */
+    private function toMockArray(MockObject $mock)
+    {
+        return json_decode(json_encode($mock), true);
     }
 }
